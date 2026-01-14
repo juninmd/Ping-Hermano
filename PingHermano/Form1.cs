@@ -2,6 +2,10 @@ using RestSharp;
 using System;
 using System.Linq;
 using System.Windows.Forms;
+using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace PingHermano
 {
@@ -22,44 +26,44 @@ namespace PingHermano
             cmbMethod.SelectedItem = "GET";
         }
 
-        private void btnSend_Click(object sender, EventArgs e)
+        private async void btnSend_Click(object sender, EventArgs e)
         {
             try
             {
+                // 1. Validate Input
                 if (string.IsNullOrWhiteSpace(txtUrl.Text))
                 {
                     MessageBox.Show("Please enter a URL.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
-                var client = new RestClient(txtUrl.Text);
+                string url = txtUrl.Text;
+                string methodString = cmbMethod.SelectedItem.ToString();
+                string body = txtRequestBody.Text;
 
+                // 2. Prepare Request Data (UI Thread)
                 Method method;
                 try
                 {
-                    method = (Method)Enum.Parse(typeof(Method), cmbMethod.SelectedItem.ToString());
+                    method = (Method)Enum.Parse(typeof(Method), methodString);
                 }
                 catch
                 {
                     method = Method.GET;
                 }
 
-                var request = new RestRequest(method);
-
+                var headers = new List<KeyValuePair<string, string>>();
                 string contentType = null;
 
-                // Add Headers
                 foreach (DataGridViewRow row in gridRequestHeaders.Rows)
                 {
-                    // Skip new row placeholder
                     if (row.IsNewRow) continue;
 
                     if (row.Cells[0].Value != null && !string.IsNullOrWhiteSpace(row.Cells[0].Value.ToString()))
                     {
                         string key = row.Cells[0].Value.ToString();
                         string value = row.Cells[1].Value != null ? row.Cells[1].Value.ToString() : "";
-
-                        request.AddHeader(key, value);
+                        headers.Add(new KeyValuePair<string, string>(key, value));
 
                         if (key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase))
                         {
@@ -68,39 +72,89 @@ namespace PingHermano
                     }
                 }
 
-                // Add Body
-                string body = txtRequestBody.Text;
-                if (!string.IsNullOrWhiteSpace(body) && method != Method.GET && method != Method.HEAD)
+                // 3. Update UI State
+                btnSend.Enabled = false;
+                btnSend.Text = "Sending...";
+                Cursor = Cursors.WaitCursor;
+                lblStatus.Text = "Status: Sending...";
+                txtResponseBody.Text = "";
+                gridResponseHeaders.Rows.Clear();
+
+                // 4. Execute Request (Background Thread)
+                IRestResponse response = await Task.Run(() =>
                 {
-                    if (string.IsNullOrEmpty(contentType))
+                    var client = new RestClient(url);
+                    var request = new RestRequest(method);
+
+                    foreach (var header in headers)
                     {
-                        contentType = "application/json";
-                        request.AddHeader("Content-Type", contentType);
+                        request.AddHeader(header.Key, header.Value);
                     }
 
-                    request.AddParameter(contentType, body, ParameterType.RequestBody);
-                }
+                    if (!string.IsNullOrWhiteSpace(body) && method != Method.GET && method != Method.HEAD)
+                    {
+                        if (string.IsNullOrEmpty(contentType))
+                        {
+                            contentType = "application/json";
+                            request.AddHeader("Content-Type", contentType);
+                        }
+                        request.AddParameter(contentType, body, ParameterType.RequestBody);
+                    }
 
-                // Execute
-                var response = client.Execute(request);
+                    return client.Execute(request);
+                });
 
-                // Display Status
+                // 5. Update UI with Response (UI Thread)
                 lblStatus.Text = $"Status: {(int)response.StatusCode} {response.StatusDescription}";
 
-                // Display Body
-                txtResponseBody.Text = response.Content;
+                // Format JSON if possible
+                string responseContent = response.Content;
+                if (!string.IsNullOrWhiteSpace(responseContent))
+                {
+                    try
+                    {
+                        // Check if content type indicates JSON
+                        bool isJson = false;
+                        var respContentType = response.Headers.FirstOrDefault(h => h.Name.Equals("Content-Type", StringComparison.OrdinalIgnoreCase));
+                        if (respContentType != null && respContentType.Value.ToString().Contains("json"))
+                        {
+                            isJson = true;
+                        }
+                        // Or try to parse anyway if it looks like JSON
+                        else if (responseContent.TrimStart().StartsWith("{") || responseContent.TrimStart().StartsWith("["))
+                        {
+                            isJson = true;
+                        }
 
-                // Display Headers
-                gridResponseHeaders.Rows.Clear();
+                        if (isJson)
+                        {
+                            responseContent = JToken.Parse(responseContent).ToString(Formatting.Indented);
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore parsing errors, just show raw content
+                    }
+                }
+
+                txtResponseBody.Text = responseContent;
+
                 foreach (var header in response.Headers)
                 {
                     gridResponseHeaders.Rows.Add(header.Name, header.Value);
                 }
-
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                lblStatus.Text = "Status: Error";
+            }
+            finally
+            {
+                // 6. Restore UI State
+                btnSend.Enabled = true;
+                btnSend.Text = "Send";
+                Cursor = Cursors.Default;
             }
         }
     }
