@@ -1,27 +1,79 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Sidebar from './components/Sidebar';
+import RequestTabs from './components/RequestTabs';
+import ResponsePanel from './components/ResponsePanel';
 
 function App() {
+  const [history, setHistory] = useState([]);
   const [method, setMethod] = useState('GET');
   const [url, setUrl] = useState('');
+  const [params, setParams] = useState([{ key: '', value: '' }]);
   const [headers, setHeaders] = useState([{ key: '', value: '' }]);
   const [body, setBody] = useState('');
+
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('body'); // 'body' | 'headers'
-  const [activeResTab, setActiveResTab] = useState('body'); // 'body' | 'headers'
+  const [error, setError] = useState(null);
+
+  const [activeTab, setActiveTab] = useState('params'); // 'params' | 'headers' | 'body'
 
   const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
 
-  const handleHeaderChange = (index, field, value) => {
-    const newHeaders = [...headers];
-    newHeaders[index][field] = value;
-
-    // Add new row if typing in the last one
-    if (index === newHeaders.length - 1 && (newHeaders[index].key || newHeaders[index].value)) {
-      newHeaders.push({ key: '', value: '' });
+  useEffect(() => {
+    const savedHistory = localStorage.getItem('requestHistory');
+    if (savedHistory) {
+      try {
+        setHistory(JSON.parse(savedHistory));
+      } catch (e) {
+        console.error('Failed to parse history', e);
+      }
     }
+  }, []);
 
-    setHeaders(newHeaders);
+  // Update Params when URL changes (user types in URL)
+  const handleUrlChange = (e) => {
+    const newUrl = e.target.value;
+    setUrl(newUrl);
+
+    const parts = newUrl.split('?');
+    if (parts.length > 1) {
+        const query = parts.slice(1).join('?');
+        const searchParams = new URLSearchParams(query);
+        const newParams = [];
+        searchParams.forEach((value, key) => {
+            newParams.push({ key, value });
+        });
+        newParams.push({ key: '', value: '' });
+        setParams(newParams);
+    } else {
+        setParams([{ key: '', value: '' }]);
+    }
+  };
+
+  // Update URL when Params change (user types in Params table)
+  const updateParams = (newParams) => {
+    setParams(newParams);
+
+    // Construct new URL
+    try {
+        // We need a base to use URL object, if url is relative or empty, this is tricky.
+        // If empty, assume http://localhost for construction then strip it?
+        let baseUrlStr = url.split('?')[0];
+        if (!baseUrlStr) baseUrlStr = '';
+
+        const queryString = newParams
+            .filter(p => p.key)
+            .map(p => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`)
+            .join('&');
+
+        if (queryString) {
+            setUrl(`${baseUrlStr}?${queryString}`);
+        } else {
+            setUrl(baseUrlStr);
+        }
+    } catch (e) {
+        console.error("Error constructing URL from params", e);
+    }
   };
 
   const handleSend = async () => {
@@ -32,6 +84,7 @@ function App() {
 
     setLoading(true);
     setResponse(null);
+    setError(null);
 
     try {
       // Filter empty headers
@@ -45,8 +98,10 @@ function App() {
       });
 
       setResponse(result);
+      addToHistory({ url, method });
     } catch (error) {
       console.error(error);
+      setError(error.message);
       setResponse({
         status: 0,
         statusText: 'Error',
@@ -58,109 +113,80 @@ function App() {
     }
   };
 
-  const formatBody = (content) => {
-    if (content === null || content === undefined) return '';
-    if (typeof content === 'object') {
-      try {
-        return JSON.stringify(content, null, 2);
-      } catch {
-        return content.toString();
+  const addToHistory = (requestItem) => {
+    setHistory(prev => {
+        // Remove duplicate if exists (same method and url) to bump it to top
+        const filtered = prev.filter(item => !(item.method === requestItem.method && item.url === requestItem.url));
+        const newHistory = [requestItem, ...filtered].slice(0, 50);
+        localStorage.setItem('requestHistory', JSON.stringify(newHistory));
+        return newHistory;
+    });
+  };
+
+  const loadHistoryItem = (item) => {
+      setMethod(item.method);
+      setUrl(item.url);
+
+      const parts = item.url.split('?');
+      if (parts.length > 1) {
+          const query = parts.slice(1).join('?');
+          const searchParams = new URLSearchParams(query);
+          const newParams = [];
+          searchParams.forEach((value, key) => {
+              newParams.push({ key, value });
+          });
+          newParams.push({ key: '', value: '' });
+          setParams(newParams);
+      } else {
+          setParams([{ key: '', value: '' }]);
       }
-    }
-    try {
-        const json = JSON.parse(content);
-        return JSON.stringify(json, null, 2);
-    } catch {
-        return content;
-    }
-  }
+  };
+
+  const clearHistory = () => {
+      setHistory([]);
+      localStorage.removeItem('requestHistory');
+  };
 
   return (
-    <div className="container">
-      {/* Request Bar */}
-      <div className="request-bar">
-        <select value={method} onChange={(e) => setMethod(e.target.value)}>
-          {methods.map(m => <option key={m} value={m}>{m}</option>)}
-        </select>
-        <input
-          type="text"
-          placeholder="Enter URL"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
+    <div className="app-container">
+      <Sidebar
+        history={history}
+        onSelect={loadHistoryItem}
+        onClear={clearHistory}
+      />
+
+      <div className="main-content">
+        <div className="request-bar">
+            <select value={method} onChange={(e) => setMethod(e.target.value)}>
+            {methods.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+            <input
+            type="text"
+            placeholder="Enter URL"
+            value={url}
+            onChange={handleUrlChange}
+            />
+            <button onClick={handleSend} disabled={loading}>
+            {loading ? 'Sending...' : 'Send'}
+            </button>
+        </div>
+
+        <RequestTabs
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            body={body}
+            setBody={setBody}
+            headers={headers}
+            setHeaders={setHeaders}
+            params={params}
+            setParams={updateParams}
         />
-        <button onClick={handleSend} disabled={loading}>
-          {loading ? 'Sending...' : 'Send'}
-        </button>
-      </div>
 
-      {/* Request Details */}
-      <div className="tabs">
-        <div className={`tab ${activeTab === 'body' ? 'active' : ''}`} onClick={() => setActiveTab('body')}>Body</div>
-        <div className={`tab ${activeTab === 'headers' ? 'active' : ''}`} onClick={() => setActiveTab('headers')}>Headers</div>
-      </div>
-
-      <div className="tab-content">
-        {activeTab === 'body' && (
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="Request Body (JSON, Text, etc.)"
-          />
-        )}
-        {activeTab === 'headers' && (
-          <div className="headers-grid">
-            {headers.map((header, index) => (
-              <div key={index} className="header-row">
-                <input
-                  placeholder="Key"
-                  value={header.key}
-                  onChange={(e) => handleHeaderChange(index, 'key', e.target.value)}
-                />
-                <input
-                  placeholder="Value"
-                  value={header.value}
-                  onChange={(e) => handleHeaderChange(index, 'value', e.target.value)}
-                />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Response Area */}
-      <div className="response-area">
-        {response && (
-          <>
-            <div className="response-status">
-              Status: {response.status} {response.statusText}
-            </div>
-
-            <div className="tabs">
-                <div className={`tab ${activeResTab === 'body' ? 'active' : ''}`} onClick={() => setActiveResTab('body')}>Response Body</div>
-                <div className={`tab ${activeResTab === 'headers' ? 'active' : ''}`} onClick={() => setActiveResTab('headers')}>Response Headers</div>
-            </div>
-
-            <div className="tab-content">
-                {activeResTab === 'body' && (
-                    <textarea
-                        readOnly
-                        value={formatBody(response.data)}
-                    />
-                )}
-                {activeResTab === 'headers' && (
-                    <div className="headers-grid">
-                        {Object.entries(response.headers).map(([key, value]) => (
-                             <div key={key} className="header-row">
-                                <input readOnly value={key} />
-                                <input readOnly value={value} />
-                             </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-          </>
-        )}
-        {!response && !loading && <div style={{padding: '10px'}}>Ready to send request.</div>}
+        <ResponsePanel
+            response={response}
+            loading={loading}
+            error={error}
+        />
       </div>
     </div>
   );
