@@ -1,28 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Sidebar from './components/Sidebar';
+import RequestEditor from './components/RequestEditor';
+import ResponseViewer from './components/ResponseViewer';
 
 function App() {
+  // --- Request State ---
   const [method, setMethod] = useState('GET');
   const [url, setUrl] = useState('');
   const [headers, setHeaders] = useState([{ key: '', value: '' }]);
   const [body, setBody] = useState('');
+
+  // --- Response State ---
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('body'); // 'body' | 'headers'
-  const [activeResTab, setActiveResTab] = useState('body'); // 'body' | 'headers'
+  const [error, setError] = useState(null);
 
-  const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
+  // --- History State ---
+  const [history, setHistory] = useState([]);
 
-  const handleHeaderChange = (index, field, value) => {
-    const newHeaders = [...headers];
-    newHeaders[index][field] = value;
-
-    // Add new row if typing in the last one
-    if (index === newHeaders.length - 1 && (newHeaders[index].key || newHeaders[index].value)) {
-      newHeaders.push({ key: '', value: '' });
+  // Load history on mount
+  useEffect(() => {
+    const savedHistory = localStorage.getItem('requestHistory');
+    if (savedHistory) {
+      try {
+        setHistory(JSON.parse(savedHistory));
+      } catch (e) {
+        console.error("Failed to parse history", e);
+      }
     }
+  }, []);
 
-    setHeaders(newHeaders);
-  };
+  // Save history whenever it changes
+  useEffect(() => {
+    localStorage.setItem('requestHistory', JSON.stringify(history));
+  }, [history]);
 
   const handleSend = async () => {
     if (!url) {
@@ -32,9 +43,24 @@ function App() {
 
     setLoading(true);
     setResponse(null);
+    setError(null);
+
+    // Save to history
+    const newHistoryItem = {
+      id: Date.now().toString(),
+      method,
+      url,
+      date: new Date().toISOString()
+      // We could save headers/body too if we want full restore
+    };
+
+    // Add to top, prevent duplicates of exact same request if desired (simple dedup)
+    setHistory(prev => {
+        const filtered = prev.filter(item => !(item.method === method && item.url === url));
+        return [newHistoryItem, ...filtered].slice(0, 50); // Keep last 50
+    });
 
     try {
-      // Filter empty headers
       const validHeaders = headers.filter(h => h.key.trim() !== '');
 
       const result = await window.electronAPI.makeRequest({
@@ -45,12 +71,12 @@ function App() {
       });
 
       setResponse(result);
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
       setResponse({
         status: 0,
         statusText: 'Error',
-        data: error.message,
+        data: err.message,
         headers: {}
       });
     } finally {
@@ -58,109 +84,47 @@ function App() {
     }
   };
 
-  const formatBody = (content) => {
-    if (content === null || content === undefined) return '';
-    if (typeof content === 'object') {
-      try {
-        return JSON.stringify(content, null, 2);
-      } catch {
-        return content.toString();
+  const loadHistoryItem = (item) => {
+      setMethod(item.method);
+      setUrl(item.url);
+      // For now we don't save headers/body in history item to keep it simple,
+      // but in a real app we should.
+      // If we want to implement that later, we'd add it to newHistoryItem above.
+  };
+
+  const clearHistory = () => {
+      if (confirm('Clear all history?')) {
+          setHistory([]);
       }
-    }
-    try {
-        const json = JSON.parse(content);
-        return JSON.stringify(json, null, 2);
-    } catch {
-        return content;
-    }
   }
 
   return (
-    <div className="container">
-      {/* Request Bar */}
-      <div className="request-bar">
-        <select value={method} onChange={(e) => setMethod(e.target.value)}>
-          {methods.map(m => <option key={m} value={m}>{m}</option>)}
-        </select>
-        <input
-          type="text"
-          placeholder="Enter URL"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-        />
-        <button onClick={handleSend} disabled={loading}>
-          {loading ? 'Sending...' : 'Send'}
-        </button>
-      </div>
+    <div className="app-container">
+      <Sidebar
+        history={history}
+        onSelect={loadHistoryItem}
+        onClear={clearHistory}
+      />
 
-      {/* Request Details */}
-      <div className="tabs">
-        <div className={`tab ${activeTab === 'body' ? 'active' : ''}`} onClick={() => setActiveTab('body')}>Body</div>
-        <div className={`tab ${activeTab === 'headers' ? 'active' : ''}`} onClick={() => setActiveTab('headers')}>Headers</div>
-      </div>
-
-      <div className="tab-content">
-        {activeTab === 'body' && (
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="Request Body (JSON, Text, etc.)"
+      <div className="main-content">
+          <RequestEditor
+            method={method}
+            setMethod={setMethod}
+            url={url}
+            setUrl={setUrl}
+            headers={headers}
+            setHeaders={setHeaders}
+            body={body}
+            setBody={setBody}
+            onSend={handleSend}
+            loading={loading}
           />
-        )}
-        {activeTab === 'headers' && (
-          <div className="headers-grid">
-            {headers.map((header, index) => (
-              <div key={index} className="header-row">
-                <input
-                  placeholder="Key"
-                  value={header.key}
-                  onChange={(e) => handleHeaderChange(index, 'key', e.target.value)}
-                />
-                <input
-                  placeholder="Value"
-                  value={header.value}
-                  onChange={(e) => handleHeaderChange(index, 'value', e.target.value)}
-                />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* Response Area */}
-      <div className="response-area">
-        {response && (
-          <>
-            <div className="response-status">
-              Status: {response.status} {response.statusText}
-            </div>
-
-            <div className="tabs">
-                <div className={`tab ${activeResTab === 'body' ? 'active' : ''}`} onClick={() => setActiveResTab('body')}>Response Body</div>
-                <div className={`tab ${activeResTab === 'headers' ? 'active' : ''}`} onClick={() => setActiveResTab('headers')}>Response Headers</div>
-            </div>
-
-            <div className="tab-content">
-                {activeResTab === 'body' && (
-                    <textarea
-                        readOnly
-                        value={formatBody(response.data)}
-                    />
-                )}
-                {activeResTab === 'headers' && (
-                    <div className="headers-grid">
-                        {Object.entries(response.headers).map(([key, value]) => (
-                             <div key={key} className="header-row">
-                                <input readOnly value={key} />
-                                <input readOnly value={value} />
-                             </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-          </>
-        )}
-        {!response && !loading && <div style={{padding: '10px'}}>Ready to send request.</div>}
+          <ResponseViewer
+            response={response}
+            loading={loading}
+            error={error}
+          />
       </div>
     </div>
   );
