@@ -187,12 +187,7 @@ const CodeEditor = styled.textarea`
 `;
 
 const ParamsEditor = styled.div`
-  .empty-state {
-    color: #858585;
-    font-style: italic;
-    padding: 20px;
-    text-align: center;
-  }
+  /* Reuse HeadersGrid styles if needed, or add specific overrides */
 `;
 
 const RequestEditor = observer(() => {
@@ -200,6 +195,7 @@ const RequestEditor = observer(() => {
       method, setMethod,
       url, setUrl,
       headers, setHeaders,
+      queryParams, setQueryParams,
       body, setBody,
       sendRequest, loading
   } = requestStore;
@@ -228,6 +224,26 @@ const RequestEditor = observer(() => {
     }
   }
 
+  const handleParamChange = (index: number, field: 'key' | 'value', value: string) => {
+    const newParams = queryParams.map(p => ({ ...p }));
+    newParams[index][field] = value;
+
+    if (index === newParams.length - 1 && (newParams[index].key || newParams[index].value)) {
+      newParams.push({ key: '', value: '' });
+    }
+
+    setQueryParams(newParams);
+  };
+
+  const removeParam = (index: number) => {
+    if (queryParams.length > 1) {
+        const newParams = queryParams.filter((_, i) => i !== index);
+        setQueryParams(newParams);
+    } else {
+        setQueryParams([{ key: '', value: '' }]);
+    }
+  }
+
   return (
     <EditorContainer>
       <RequestBar>
@@ -249,7 +265,7 @@ const RequestEditor = observer(() => {
       </RequestBar>
 
       <Tabs>
-        <Tab active={activeTab === 'params'} onClick={() => setActiveTab('params')}>Params</Tab>
+        <Tab active={activeTab === 'params'} onClick={() => setActiveTab('params')}>Params ({queryParams.filter(p => p.key).length})</Tab>
         <Tab active={activeTab === 'headers'} onClick={() => setActiveTab('headers')}>Headers ({headers.filter(h => h.key).length})</Tab>
         <Tab active={activeTab === 'body'} onClick={() => setActiveTab('body')}>Body</Tab>
       </Tabs>
@@ -257,7 +273,32 @@ const RequestEditor = observer(() => {
       <TabContent>
         {activeTab === 'params' && (
             <ParamsEditor>
-                <div className="empty-state">Query params support coming soon (edit URL directly for now)</div>
+                <HeadersGrid>
+                    <HeaderRow label>
+                        <ColLabel>Key</ColLabel>
+                        <ColLabel>Value</ColLabel>
+                        <ColAction></ColAction>
+                    </HeaderRow>
+                    {queryParams.map((param, index) => (
+                    <HeaderRow key={index}>
+                        <HeaderInput
+                        placeholder="Key"
+                        value={param.key}
+                        onChange={(e) => handleParamChange(index, 'key', e.target.value)}
+                        />
+                        <HeaderInput
+                        placeholder="Value"
+                        value={param.value}
+                        onChange={(e) => handleParamChange(index, 'value', e.target.value)}
+                        />
+                        <ColAction>
+                        {queryParams.length > 1 && index !== queryParams.length - 1 && (
+                            <RemoveBtn onClick={() => removeParam(index)}>✕</RemoveBtn>
+                        )}
+                        </ColAction>
+                    </HeaderRow>
+                    ))}
+                </HeadersGrid>
             </ParamsEditor>
         )}
 
