@@ -127,7 +127,7 @@ const ResponseBody = styled.textarea`
 `;
 
 const ResponseViewer = observer(() => {
-  const { response, loading, error } = requestStore;
+  const { response, loading, error, responseMetrics } = requestStore;
   const [activeTab, setActiveTab] = useState<'body' | 'headers'>('body');
 
   if (loading) {
@@ -172,8 +172,8 @@ const ResponseViewer = observer(() => {
     <ViewerContainer>
       <ResponseMeta>
           <div className="status-label">Status: <StatusValue status={status}>{status} {statusText}</StatusValue></div>
-          <MetaInfo>Time: --ms</MetaInfo>
-          <MetaInfo>Size: --KB</MetaInfo>
+          <MetaInfo>Time: {responseMetrics.time}ms</MetaInfo>
+          <MetaInfo>Size: {responseMetrics.size}</MetaInfo>
       </ResponseMeta>
 
       <Tabs>

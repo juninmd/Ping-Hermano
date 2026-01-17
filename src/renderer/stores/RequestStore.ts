@@ -5,6 +5,11 @@ export interface Header {
   value: string;
 }
 
+export interface QueryParam {
+  key: string;
+  value: string;
+}
+
 export interface HistoryItem {
   id: string;
   method: string;
@@ -17,18 +22,20 @@ export class RequestStore {
   method: string = 'GET';
   url: string = '';
   headers: Header[] = [{ key: '', value: '' }];
+  queryParams: QueryParam[] = [{ key: '', value: '' }];
   body: string = '';
 
   // Response State
   response: any = null;
   loading: boolean = false;
   error: any = null;
+  responseMetrics: { time: number; size: string } = { time: 0, size: '0 B' };
 
   // History State
   history: HistoryItem[] = [];
 
   constructor() {
-    makeAutoObservable(this);
+    makeAutoObservable(this, {}, { autoBind: true });
     this.loadHistory();
   }
 
@@ -38,14 +45,74 @@ export class RequestStore {
 
   setUrl(url: string) {
     this.url = url;
+    this.parseQueryParams();
   }
 
   setHeaders(headers: Header[]) {
     this.headers = headers;
   }
 
+  setQueryParams(params: QueryParam[]) {
+    this.queryParams = params;
+    this.updateUrlFromParams();
+  }
+
   setBody(body: string) {
     this.body = body;
+  }
+
+  private parseQueryParams() {
+    try {
+        let searchPart = '';
+        const queryIndex = this.url.indexOf('?');
+        if (queryIndex !== -1) {
+            searchPart = this.url.substring(queryIndex + 1);
+        }
+
+        if (!searchPart) {
+           if (this.queryParams.length > 1 || (this.queryParams[0].key || this.queryParams[0].value)) {
+               this.queryParams = [{ key: '', value: '' }];
+           }
+           return;
+        }
+
+        const params = new URLSearchParams(searchPart);
+        const newParams: QueryParam[] = [];
+        params.forEach((value, key) => {
+            newParams.push({ key, value });
+        });
+
+        // Always add an empty row at the end
+        newParams.push({ key: '', value: '' });
+
+        this.queryParams = newParams;
+    } catch (e) {
+        // Ignore parsing errors
+    }
+  }
+
+  private updateUrlFromParams() {
+      const validParams = this.queryParams.filter(p => p.key || p.value);
+
+      // Get base URL (remove query string)
+      const queryIndex = this.url.indexOf('?');
+      let baseUrl = this.url;
+      if (queryIndex !== -1) {
+          baseUrl = this.url.substring(0, queryIndex);
+      }
+
+      if (validParams.length === 0) {
+          this.url = baseUrl;
+          return;
+      }
+
+      const searchParams = new URLSearchParams();
+      validParams.forEach(p => {
+          if (p.key) searchParams.append(p.key, p.value);
+      });
+
+      const queryString = searchParams.toString();
+      this.url = `${baseUrl}?${queryString}`;
   }
 
   loadHistory() {
@@ -83,7 +150,7 @@ export class RequestStore {
 
   loadHistoryItem(item: HistoryItem) {
     this.method = item.method;
-    this.url = item.url;
+    this.setUrl(item.url);
   }
 
   async sendRequest() {
@@ -95,8 +162,11 @@ export class RequestStore {
     this.loading = true;
     this.response = null;
     this.error = null;
+    this.responseMetrics = { time: 0, size: '0 B' };
 
     this.addToHistory();
+
+    const startTime = performance.now();
 
     try {
       const validHeaders = this.headers.filter(h => h.key.trim() !== '');
@@ -108,9 +178,26 @@ export class RequestStore {
         body: this.body
       });
 
+      const endTime = performance.now();
+      const duration = Math.round(endTime - startTime);
+
+      // Calculate size approx
+      let sizeBytes = 0;
+      if (result.data) {
+          sizeBytes = new TextEncoder().encode(typeof result.data === 'string' ? result.data : JSON.stringify(result.data)).length;
+      }
+
+      let sizeStr = `${sizeBytes} B`;
+      if (sizeBytes > 1024) sizeStr = `${(sizeBytes / 1024).toFixed(2)} KB`;
+      if (sizeBytes > 1024 * 1024) sizeStr = `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`;
+
       runInAction(() => {
         this.response = result;
         this.loading = false;
+        this.responseMetrics = {
+            time: duration,
+            size: sizeStr
+        };
       });
     } catch (err: any) {
       console.error(err);
