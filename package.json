@@ -1,7 +1,7 @@
 {
   "name": "ping-hermano-electron",
   "version": "1.0.0",
-  "description": "PingHermano ported to Electron",
+  "description": "PingHermano - A simple Postman clone built with Electron",
   "main": "src/main/main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:electron\"",
