@@ -24,6 +24,9 @@
   },
   "homepage": "https://github.com/juninmd/Ping-Hermano#readme",
   "dependencies": {
+    "@faker-js/faker": "^10.2.0",
+    "chai": "^6.2.2",
+    "cheerio": "^1.1.2",
     "electron": "^39.2.7",
     "lodash": "^4.17.21",
     "mobx": "^6.15.0",
