@@ -128,7 +128,7 @@ const ResponseBody = styled.textarea`
 
 const ResponseViewer = observer(() => {
   const { response, loading, error, responseMetrics } = requestStore;
-  const [activeTab, setActiveTab] = useState<'body' | 'headers'>('body');
+  const [activeTab, setActiveTab] = useState<'body' | 'headers' | 'preview'>('body');
 
   if (loading) {
     return (
@@ -178,6 +178,7 @@ const ResponseViewer = observer(() => {
 
       <Tabs>
         <Tab active={activeTab === 'body'} onClick={() => setActiveTab('body')}>Body</Tab>
+        <Tab active={activeTab === 'preview'} onClick={() => setActiveTab('preview')}>Preview</Tab>
         <Tab active={activeTab === 'headers'} onClick={() => setActiveTab('headers')}>Headers</Tab>
       </Tabs>
 
@@ -187,6 +188,13 @@ const ResponseViewer = observer(() => {
                 readOnly
                 value={formatBody(data)}
              />
+        )}
+        {activeTab === 'preview' && (
+            <iframe
+                srcDoc={typeof data === 'string' ? data : JSON.stringify(data)}
+                style={{ width: '100%', height: '100%', border: 'none', backgroundColor: 'white' }}
+                sandbox="allow-scripts"
+            />
         )}
         {activeTab === 'headers' && (
             <HeadersGrid>
