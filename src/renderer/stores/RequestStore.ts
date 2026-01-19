@@ -10,10 +10,20 @@ export interface QueryParam {
   value: string;
 }
 
+export interface Auth {
+  type: 'none' | 'basic' | 'bearer';
+  username?: string;
+  password?: string;
+  token?: string;
+}
+
 export interface HistoryItem {
   id: string;
   method: string;
   url: string;
+  headers?: Header[];
+  body?: string;
+  auth?: Auth;
   date: string;
 }
 
@@ -24,6 +34,7 @@ export class RequestStore {
   headers: Header[] = [{ key: '', value: '' }];
   queryParams: QueryParam[] = [{ key: '', value: '' }];
   body: string = '';
+  auth: Auth = { type: 'none' };
 
   // Response State
   response: any = null;
@@ -59,6 +70,30 @@ export class RequestStore {
 
   setBody(body: string) {
     this.body = body;
+  }
+
+  setAuth(auth: Auth) {
+    this.auth = auth;
+    this.updateAuthHeader();
+  }
+
+  private updateAuthHeader() {
+    // Remove existing Authorization header
+    let newHeaders = this.headers.filter(h => h.key.toLowerCase() !== 'authorization');
+
+    if (this.auth.type === 'basic') {
+      const token = btoa(`${this.auth.username || ''}:${this.auth.password || ''}`);
+      newHeaders.unshift({ key: 'Authorization', value: `Basic ${token}` });
+    } else if (this.auth.type === 'bearer') {
+      newHeaders.unshift({ key: 'Authorization', value: `Bearer ${this.auth.token || ''}` });
+    }
+
+    // Ensure empty row at end if needed
+    if (newHeaders.length === 0 || (newHeaders[newHeaders.length - 1].key || newHeaders[newHeaders.length - 1].value)) {
+       newHeaders.push({ key: '', value: '' });
+    }
+
+    this.headers = newHeaders;
   }
 
   private parseQueryParams() {
@@ -131,10 +166,15 @@ export class RequestStore {
   }
 
   addToHistory() {
+    const validHeaders = this.headers.filter(h => h.key.trim() !== '' || h.value.trim() !== '');
+
     const newHistoryItem: HistoryItem = {
       id: Date.now().toString(),
       method: this.method,
       url: this.url,
+      headers: validHeaders,
+      body: this.body,
+      auth: this.auth,
       date: new Date().toISOString()
     };
 
@@ -151,6 +191,15 @@ export class RequestStore {
   loadHistoryItem(item: HistoryItem) {
     this.method = item.method;
     this.setUrl(item.url);
+
+    if (item.headers && item.headers.length > 0) {
+      this.headers = [...item.headers, { key: '', value: '' }];
+    } else {
+      this.headers = [{ key: '', value: '' }];
+    }
+
+    this.body = item.body || '';
+    this.auth = item.auth || { type: 'none' };
   }
 
   async sendRequest() {

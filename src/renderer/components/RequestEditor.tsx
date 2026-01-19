@@ -197,10 +197,11 @@ const RequestEditor = observer(() => {
       headers, setHeaders,
       queryParams, setQueryParams,
       body, setBody,
+      auth, setAuth,
       sendRequest, loading
   } = requestStore;
 
-  const [activeTab, setActiveTab] = useState<'params' | 'headers' | 'body'>('params');
+  const [activeTab, setActiveTab] = useState<'params' | 'headers' | 'body' | 'auth'>('params');
 
   const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
 
@@ -266,6 +267,7 @@ const RequestEditor = observer(() => {
 
       <Tabs>
         <Tab active={activeTab === 'params'} onClick={() => setActiveTab('params')}>Params ({queryParams.filter(p => p.key).length})</Tab>
+        <Tab active={activeTab === 'auth'} onClick={() => setActiveTab('auth')}>Auth</Tab>
         <Tab active={activeTab === 'headers'} onClick={() => setActiveTab('headers')}>Headers ({headers.filter(h => h.key).length})</Tab>
         <Tab active={activeTab === 'body'} onClick={() => setActiveTab('body')}>Body</Tab>
       </Tabs>
@@ -300,6 +302,66 @@ const RequestEditor = observer(() => {
                     ))}
                 </HeadersGrid>
             </ParamsEditor>
+        )}
+
+        {activeTab === 'auth' && (
+          <BodyEditor>
+            <div style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <label style={{ width: 80 }}>Type:</label>
+                <select
+                  value={auth.type}
+                  onChange={(e) => setAuth({ ...auth, type: e.target.value as any })}
+                  style={{ padding: 5, backgroundColor: '#3c3c3c', color: '#cccccc', border: '1px solid #3e3e42', outline: 'none' }}
+                >
+                  <option value="none">No Auth</option>
+                  <option value="basic">Basic Auth</option>
+                  <option value="bearer">Bearer Token</option>
+                </select>
+              </div>
+
+              {auth.type === 'basic' && (
+                <>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <label style={{ width: 80 }}>Username:</label>
+                    <input
+                      type="text"
+                      value={auth.username || ''}
+                      onChange={(e) => setAuth({ ...auth, username: e.target.value })}
+                      style={{ padding: 5, flex: 1, backgroundColor: '#3c3c3c', color: '#cccccc', border: '1px solid #3e3e42', outline: 'none' }}
+                      placeholder="Username"
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <label style={{ width: 80 }}>Password:</label>
+                    <input
+                      type="password"
+                      value={auth.password || ''}
+                      onChange={(e) => setAuth({ ...auth, password: e.target.value })}
+                      style={{ padding: 5, flex: 1, backgroundColor: '#3c3c3c', color: '#cccccc', border: '1px solid #3e3e42', outline: 'none' }}
+                      placeholder="Password"
+                    />
+                  </div>
+                </>
+              )}
+
+              {auth.type === 'bearer' && (
+                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                   <label style={{ width: 80 }}>Token:</label>
+                   <input
+                     type="text"
+                     value={auth.token || ''}
+                     onChange={(e) => setAuth({ ...auth, token: e.target.value })}
+                     style={{ padding: 5, flex: 1, backgroundColor: '#3c3c3c', color: '#cccccc', border: '1px solid #3e3e42', outline: 'none' }}
+                     placeholder="Bearer Token"
+                   />
+                 </div>
+              )}
+            </div>
+            <div style={{ padding: 10, color: '#858585', fontSize: 12 }}>
+              Authorization header will be automatically generated.
+            </div>
+          </BodyEditor>
         )}
 
         {activeTab === 'headers' && (
