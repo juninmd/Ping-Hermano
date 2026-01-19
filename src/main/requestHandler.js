@@ -4,7 +4,7 @@ const sdk = require('postman-collection');
 async function handleRequest(requestData) {
   return new Promise((resolve) => {
     try {
-        const { url, method, headers, body } = requestData;
+        const { url, method, headers, body, preRequestScript, testScript } = requestData;
 
         // Create a collection
         const collection = new sdk.Collection();
@@ -40,6 +40,26 @@ async function handleRequest(requestData) {
             request: requestDefinition
         });
 
+        if (preRequestScript) {
+            requestItem.events.add({
+                listen: 'prerequest',
+                script: {
+                    type: 'text/javascript',
+                    exec: preRequestScript
+                }
+            });
+        }
+
+        if (testScript) {
+            requestItem.events.add({
+                listen: 'test',
+                script: {
+                    type: 'text/javascript',
+                    exec: testScript
+                }
+            });
+        }
+
         collection.items.add(requestItem);
 
         // Run the collection
@@ -47,6 +67,8 @@ async function handleRequest(requestData) {
 
         let responseData = null;
         let errorData = null;
+        let testResults = [];
+        let consoleLogs = [];
 
         runner.run(collection, {
             iterationCount: 1,
@@ -64,6 +86,23 @@ async function handleRequest(requestData) {
             }
 
             run.start({
+                assertion: function (cursor, assertions) {
+                    if (assertions) {
+                        assertions.forEach(assertion => {
+                            testResults.push({
+                                name: assertion.assertion,
+                                passed: !assertion.error,
+                                error: assertion.error ? assertion.error.message : null
+                            });
+                        });
+                    }
+                },
+                console: function (cursor, level, ...messages) {
+                    consoleLogs.push({
+                        level: level,
+                        messages: messages.map(m => String(m))
+                    });
+                },
                 request: function (err, cursor, response, request, item, cookies, history) {
                     if (err) {
                         errorData = err;
@@ -118,13 +157,17 @@ async function handleRequest(requestData) {
                     }
 
                     if (responseData) {
+                        responseData.testResults = testResults;
+                        responseData.consoleLogs = consoleLogs;
                         resolve(responseData);
                     } else {
                         resolve({
                              status: 0,
                              statusText: 'No Response',
                              headers: {},
-                             data: ''
+                             data: '',
+                             testResults: testResults,
+                             consoleLogs: consoleLogs
                         });
                     }
                 }

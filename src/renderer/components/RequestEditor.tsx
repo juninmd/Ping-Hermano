@@ -198,10 +198,12 @@ const RequestEditor = observer(() => {
       queryParams, setQueryParams,
       body, setBody,
       auth, setAuth,
+      preRequestScript, setPreRequestScript,
+      testScript, setTestScript,
       sendRequest, loading
   } = requestStore;
 
-  const [activeTab, setActiveTab] = useState<'params' | 'headers' | 'body' | 'auth'>('params');
+  const [activeTab, setActiveTab] = useState<'params' | 'headers' | 'body' | 'auth' | 'prerequest' | 'tests'>('params');
 
   const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
 
@@ -270,6 +272,8 @@ const RequestEditor = observer(() => {
         <Tab active={activeTab === 'auth'} onClick={() => setActiveTab('auth')}>Auth</Tab>
         <Tab active={activeTab === 'headers'} onClick={() => setActiveTab('headers')}>Headers ({headers.filter(h => h.key).length})</Tab>
         <Tab active={activeTab === 'body'} onClick={() => setActiveTab('body')}>Body</Tab>
+        <Tab active={activeTab === 'prerequest'} onClick={() => setActiveTab('prerequest')}>Pre-req</Tab>
+        <Tab active={activeTab === 'tests'} onClick={() => setActiveTab('tests')}>Tests</Tab>
       </Tabs>
 
       <TabContent>
@@ -402,6 +406,28 @@ const RequestEditor = observer(() => {
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 placeholder="Request Body (JSON, XML, Text...)"
+              />
+           </BodyEditor>
+        )}
+
+        {activeTab === 'prerequest' && (
+           <BodyEditor>
+             <BodyOptions>Pre-request Script (Javascript)</BodyOptions>
+             <CodeEditor
+                value={preRequestScript}
+                onChange={(e) => setPreRequestScript(e.target.value)}
+                placeholder="// Write your pre-request script here"
+              />
+           </BodyEditor>
+        )}
+
+        {activeTab === 'tests' && (
+           <BodyEditor>
+             <BodyOptions>Tests (Javascript)</BodyOptions>
+             <CodeEditor
+                value={testScript}
+                onChange={(e) => setTestScript(e.target.value)}
+                placeholder={'// Write your tests here\n// pm.test("Status code is 200", function () {\n//     pm.response.to.have.status(200);\n// });'}
               />
            </BodyEditor>
         )}
