@@ -1,76 +1,62 @@
-import os
+
+from playwright.sync_api import Page, expect, sync_playwright
 import time
-from playwright.sync_api import sync_playwright
 
-def verify_app():
-    with sync_playwright() as p:
-        # We need to launch the electron app.
-        # However, Playwright for Python usually connects to a web server or launches a browser.
-        # Launching Electron with Playwright is possible but requires the 'electron' executable path.
-        # Since this is a restricted environment, we might not have 'electron' binary easily accessible via Playwright's launch_persistent_context or similar.
-        # BUT, the instructions say "Start the local development server".
-        # For an Electron app, the renderer is served by Vite on localhost:5173 (based on package.json).
-        # So we can test the RENDERER in a standard browser (headless chromium) by mocking the electronAPI.
+def verify_app(page: Page):
+    # 1. Arrange: Go to the app
+    # Assuming the app is served at http://localhost:5173 by vite
+    page.goto("http://localhost:5173")
 
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
+    # Wait for the app to load
+    # Use get_by_placeholder because that is robust in this app
+    url_input = page.get_by_placeholder("Enter request URL")
+    expect(url_input).to_be_visible(timeout=10000)
 
-        # Mock window.electronAPI
-        page.add_init_script("""
-            window.electronAPI = {
-                makeRequest: async (data) => {
-                    console.log('Mock request:', data);
-                    return {
-                        status: 200,
-                        statusText: 'OK',
-                        headers: { 'content-type': 'application/json' },
-                        data: { message: 'Hello from mock!', input: data }
-                    };
-                }
-            };
-        """)
+    # 2. Act: Interact with the app
 
-        # Navigate to the vite dev server (we assume it's running)
-        try:
-            page.goto("http://localhost:5173")
-        except Exception as e:
-            print(f"Failed to load page: {e}")
-            return
+    # Take initial screenshot
+    page.screenshot(path="/home/jules/verification/01_initial_state.png")
 
-        # Wait for app to load
-        page.wait_for_selector('text=History')
+    # Fill URL
+    url_input.fill("https://jsonplaceholder.typicode.com/todos/1")
 
-        # 1. Verify Auth Tab exists
-        page.click('text=Auth')
-        page.wait_for_selector('text=Type:')
-        print("Auth tab verified.")
+    # 3. Assert: Check URL in input
+    expect(url_input).to_have_value("https://jsonplaceholder.typicode.com/todos/1")
+    page.screenshot(path="/home/jules/verification/02_url_filled.png")
 
-        # 2. Verify Preview Tab exists (initially hidden or in ResponseViewer?)
-        # ResponseViewer tabs (Body, Preview, Headers) show up when there is a response?
-        # Let's check the code: ResponseViewer returns "Enter URL..." if no response.
-        # So we need to make a request first.
+    # 4. Interact with Params
+    # There should be empty key/value inputs by default
+    key_inputs = page.get_by_placeholder("Key")
+    value_inputs = page.get_by_placeholder("Value")
 
-        page.fill('input[placeholder="Enter request URL"]', 'http://example.com')
-        page.click('text=Send')
+    # Add a param
+    key_inputs.first.fill("foo")
+    value_inputs.first.fill("bar")
 
-        # Wait for response
-        page.wait_for_selector('text=Status:')
+    # Check if URL updated (Integration check)
+    expect(url_input).to_have_value("https://jsonplaceholder.typicode.com/todos/1?foo=bar")
+    page.screenshot(path="/home/jules/verification/03_params_added.png")
 
-        # Now verify Preview tab
-        page.click('text=Preview')
-        # Check if iframe is present
-        iframe = page.locator('iframe')
-        if iframe.count() > 0:
-            print("Preview tab verified.")
-        else:
-            print("Preview tab iframe not found.")
+    # 5. Switch to Auth Tab
+    page.get_by_text("Auth", exact=True).click()
+    page.screenshot(path="/home/jules/verification/04_auth_tab.png")
 
-        # Take screenshot
-        os.makedirs("verification_screenshots", exist_ok=True)
-        page.screenshot(path="verification_screenshots/app_verification.png")
-        print("Screenshot saved to verification_screenshots/app_verification.png")
+    # 6. Switch to Body Tab
+    page.get_by_text("Body", exact=True).click()
+    page.screenshot(path="/home/jules/verification/05_body_tab.png")
 
-        browser.close()
+    # 7. Final screenshot of everything
+    page.screenshot(path="/home/jules/verification/verification.png")
 
 if __name__ == "__main__":
-    verify_app()
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        try:
+            verify_app(page)
+            print("Verification script finished successfully.")
+        except Exception as e:
+            print(f"Verification failed: {e}")
+            page.screenshot(path="/home/jules/verification/error.png")
+        finally:
+            browser.close()
