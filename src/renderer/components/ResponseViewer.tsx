@@ -112,6 +112,23 @@ const ReadOnlyInput = styled.input`
     background-color: #252526;
 `;
 
+const TestResultsList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow-y: auto;
+  padding: 10px;
+`;
+
+const TestResultItem = styled.div<{ passed: boolean }>`
+  display: flex;
+  justify-content: space-between;
+  padding: 8px;
+  background-color: ${props => props.passed ? 'rgba(106, 153, 85, 0.2)' : 'rgba(244, 135, 113, 0.2)'};
+  border-left: 3px solid ${props => props.passed ? '#6a9955' : '#f48771'};
+  border-radius: 4px;
+`;
+
 const ResponseBody = styled.textarea`
     width: 100%;
     height: 100%;
@@ -128,7 +145,7 @@ const ResponseBody = styled.textarea`
 
 const ResponseViewer = observer(() => {
   const { response, loading, error, responseMetrics } = requestStore;
-  const [activeTab, setActiveTab] = useState<'body' | 'headers' | 'preview'>('body');
+  const [activeTab, setActiveTab] = useState<'body' | 'headers' | 'preview' | 'tests'>('body');
 
   if (loading) {
     return (
@@ -150,6 +167,9 @@ const ResponseViewer = observer(() => {
   const status = response ? response.status : 0;
   const statusText = response ? response.statusText : '';
   const headers = response ? response.headers : {};
+  const testResults = response ? (response.testResults || []) : [];
+  const passedCount = testResults.filter((t: any) => t.passed).length;
+  const totalTests = testResults.length;
 
   const formatBody = (content: any) => {
     if (content === null || content === undefined) return '';
@@ -180,6 +200,7 @@ const ResponseViewer = observer(() => {
         <Tab active={activeTab === 'body'} onClick={() => setActiveTab('body')}>Body</Tab>
         <Tab active={activeTab === 'preview'} onClick={() => setActiveTab('preview')}>Preview</Tab>
         <Tab active={activeTab === 'headers'} onClick={() => setActiveTab('headers')}>Headers</Tab>
+        <Tab active={activeTab === 'tests'} onClick={() => setActiveTab('tests')}>Test Results ({passedCount}/{totalTests})</Tab>
       </Tabs>
 
       <TabContent>
@@ -205,6 +226,17 @@ const ResponseViewer = observer(() => {
                         </HeaderRow>
                 ))}
             </HeadersGrid>
+        )}
+        {activeTab === 'tests' && (
+            <TestResultsList>
+                {testResults.length === 0 && <div style={{ color: '#858585' }}>No tests executed</div>}
+                {testResults.map((test: any, index: number) => (
+                    <TestResultItem key={index} passed={test.passed}>
+                        <span>{test.name}</span>
+                        <span>{test.passed ? 'PASS' : 'FAIL'}</span>
+                    </TestResultItem>
+                ))}
+            </TestResultsList>
         )}
       </TabContent>
     </ViewerContainer>

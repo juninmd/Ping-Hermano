@@ -24,6 +24,8 @@ export interface HistoryItem {
   headers?: Header[];
   body?: string;
   auth?: Auth;
+  preRequestScript?: string;
+  testScript?: string;
   date: string;
 }
 
@@ -35,6 +37,8 @@ export class RequestStore {
   queryParams: QueryParam[] = [{ key: '', value: '' }];
   body: string = '';
   auth: Auth = { type: 'none' };
+  preRequestScript: string = '';
+  testScript: string = '';
 
   // Response State
   response: any = null;
@@ -70,6 +74,14 @@ export class RequestStore {
 
   setBody(body: string) {
     this.body = body;
+  }
+
+  setPreRequestScript(script: string) {
+    this.preRequestScript = script;
+  }
+
+  setTestScript(script: string) {
+    this.testScript = script;
   }
 
   setAuth(auth: Auth) {
@@ -175,6 +187,8 @@ export class RequestStore {
       headers: validHeaders,
       body: this.body,
       auth: this.auth,
+      preRequestScript: this.preRequestScript,
+      testScript: this.testScript,
       date: new Date().toISOString()
     };
 
@@ -200,6 +214,8 @@ export class RequestStore {
 
     this.body = item.body || '';
     this.auth = item.auth || { type: 'none' };
+    this.preRequestScript = item.preRequestScript || '';
+    this.testScript = item.testScript || '';
   }
 
   async sendRequest() {
@@ -224,7 +240,9 @@ export class RequestStore {
         url: this.url,
         method: this.method,
         headers: validHeaders,
-        body: this.body
+        body: this.body,
+        preRequestScript: this.preRequestScript,
+        testScript: this.testScript
       });
 
       const endTime = performance.now();
