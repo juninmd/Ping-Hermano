@@ -19,6 +19,7 @@ export interface Auth {
 
 export interface HistoryItem {
   id: string;
+  name?: string;
   method: string;
   url: string;
   headers?: Header[];
@@ -27,6 +28,12 @@ export interface HistoryItem {
   preRequestScript?: string;
   testScript?: string;
   date: string;
+}
+
+export interface Collection {
+  id: string;
+  name: string;
+  requests: HistoryItem[]; // Reuse HistoryItem structure
 }
 
 export class RequestStore {
@@ -48,10 +55,12 @@ export class RequestStore {
 
   // History State
   history: HistoryItem[] = [];
+  collections: Collection[] = [];
 
   constructor() {
     makeAutoObservable(this, {}, { autoBind: true });
     this.loadHistory();
+    this.loadCollections();
   }
 
   setMethod(method: string) {
@@ -175,6 +184,66 @@ export class RequestStore {
 
   saveHistory() {
     localStorage.setItem('requestHistory', JSON.stringify(this.history));
+  }
+
+  loadCollections() {
+    const savedCollections = localStorage.getItem('requestCollections');
+    if (savedCollections) {
+      try {
+        this.collections = JSON.parse(savedCollections);
+      } catch (e) {
+        console.error("Failed to parse collections", e);
+      }
+    }
+  }
+
+  saveCollections() {
+    localStorage.setItem('requestCollections', JSON.stringify(this.collections));
+  }
+
+  createCollection(name: string) {
+    const newCollection: Collection = {
+      id: Date.now().toString(),
+      name,
+      requests: []
+    };
+    this.collections.push(newCollection);
+    this.saveCollections();
+  }
+
+  deleteCollection(id: string) {
+    this.collections = this.collections.filter(c => c.id !== id);
+    this.saveCollections();
+  }
+
+  saveRequestToCollection(collectionId: string, name: string) {
+      const validHeaders = this.headers.filter(h => h.key.trim() !== '' || h.value.trim() !== '');
+      const newRequest: HistoryItem = {
+          id: Date.now().toString(),
+          name: name,
+          method: this.method,
+          url: this.url,
+          headers: validHeaders,
+          body: this.body,
+          auth: this.auth,
+          preRequestScript: this.preRequestScript,
+          testScript: this.testScript,
+          date: new Date().toISOString()
+      };
+
+      const collection = this.collections.find(c => c.id === collectionId);
+      if (collection) {
+          collection.requests.push(newRequest);
+          this.saveCollections();
+      }
+  }
+
+  deleteRequestFromCollection(collectionId: string, requestId: string) {
+      const collection = this.collections.find(c => c.id === collectionId);
+      if (collection) {
+          collection.requests = collection.requests.filter(r => r.id !== requestId);
+          this.saveCollections();
+      }
   }
 
   addToHistory() {

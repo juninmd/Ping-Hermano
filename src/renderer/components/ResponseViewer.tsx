@@ -3,14 +3,14 @@ import styled from 'styled-components';
 import { observer } from 'mobx-react-lite';
 import { requestStore } from '../stores/RequestStore';
 
-const ViewerContainer = styled.div<{ empty?: boolean }>`
+const ViewerContainer = styled.div<{ $empty?: boolean }>`
     padding: 15px;
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
 
-    ${props => props.empty && `
+    ${props => props.$empty && `
         align-items: center;
         justify-content: center;
     `}
@@ -53,19 +53,19 @@ const Tabs = styled.div`
   margin-top: 10px;
 `;
 
-const Tab = styled.div<{ active?: boolean }>`
+const Tab = styled.div<{ $active?: boolean }>`
   padding: 8px 0;
   cursor: pointer;
-  color: ${props => props.active ? '#cccccc' : '#858585'};
+  color: ${props => props.$active ? '#cccccc' : '#858585'};
   font-size: 13px;
   position: relative;
-  font-weight: ${props => props.active ? '500' : 'normal'};
+  font-weight: ${props => props.$active ? '500' : 'normal'};
 
   &:hover {
     color: #cccccc;
   }
 
-  ${props => props.active && `
+  ${props => props.$active && `
     &::after {
       content: '';
       position: absolute;
@@ -149,7 +149,7 @@ const ResponseViewer = observer(() => {
 
   if (loading) {
     return (
-        <ViewerContainer empty>
+        <ViewerContainer $empty>
             <Loader>Loading...</Loader>
         </ViewerContainer>
     );
@@ -157,7 +157,7 @@ const ResponseViewer = observer(() => {
 
   if (!response && !error) {
     return (
-        <ViewerContainer empty>
+        <ViewerContainer $empty>
             <PlaceholderText>Enter URL and click Send to get a response</PlaceholderText>
         </ViewerContainer>
     );
@@ -197,10 +197,10 @@ const ResponseViewer = observer(() => {
       </ResponseMeta>
 
       <Tabs>
-        <Tab active={activeTab === 'body'} onClick={() => setActiveTab('body')}>Body</Tab>
-        <Tab active={activeTab === 'preview'} onClick={() => setActiveTab('preview')}>Preview</Tab>
-        <Tab active={activeTab === 'headers'} onClick={() => setActiveTab('headers')}>Headers</Tab>
-        <Tab active={activeTab === 'tests'} onClick={() => setActiveTab('tests')}>Test Results ({passedCount}/{totalTests})</Tab>
+        <Tab $active={activeTab === 'body'} onClick={() => setActiveTab('body')}>Body</Tab>
+        <Tab $active={activeTab === 'preview'} onClick={() => setActiveTab('preview')}>Preview</Tab>
+        <Tab $active={activeTab === 'headers'} onClick={() => setActiveTab('headers')}>Headers</Tab>
+        <Tab $active={activeTab === 'tests'} onClick={() => setActiveTab('tests')}>Test Results ({passedCount}/{totalTests})</Tab>
       </Tabs>
 
       <TabContent>
