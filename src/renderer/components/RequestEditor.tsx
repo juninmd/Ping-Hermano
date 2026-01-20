@@ -68,19 +68,19 @@ const Tabs = styled.div`
   margin-top: 10px;
 `;
 
-const Tab = styled.div<{ active?: boolean }>`
+const Tab = styled.div<{ $active?: boolean }>`
   padding: 8px 0;
   cursor: pointer;
-  color: ${props => props.active ? '#cccccc' : '#858585'};
+  color: ${props => props.$active ? '#cccccc' : '#858585'};
   font-size: 13px;
   position: relative;
-  font-weight: ${props => props.active ? '500' : 'normal'};
+  font-weight: ${props => props.$active ? '500' : 'normal'};
 
   &:hover {
     color: #cccccc;
   }
 
-  ${props => props.active && `
+  ${props => props.$active && `
     &::after {
       content: '';
       position: absolute;
@@ -108,12 +108,12 @@ const HeadersGrid = styled.div`
     border-radius: 4px;
 `;
 
-const HeaderRow = styled.div<{ label?: boolean }>`
+const HeaderRow = styled.div<{ $label?: boolean }>`
     display: flex;
     border-bottom: 1px solid #3e3e42;
-    background-color: ${props => props.label ? '#2a2d2e' : 'transparent'};
-    font-weight: ${props => props.label ? 'bold' : 'normal'};
-    font-size: ${props => props.label ? '12px' : 'inherit'};
+    background-color: ${props => props.$label ? '#2a2d2e' : 'transparent'};
+    font-weight: ${props => props.$label ? 'bold' : 'normal'};
+    font-size: ${props => props.$label ? '12px' : 'inherit'};
 
     &:last-child {
         border-bottom: none;
@@ -190,6 +190,20 @@ const ParamsEditor = styled.div`
   /* Reuse HeadersGrid styles if needed, or add specific overrides */
 `;
 
+const SaveBtn = styled.button`
+  padding: 8px 16px;
+  background-color: #3c3c3c;
+  color: #cccccc;
+  border: 1px solid #3e3e42;
+  cursor: pointer;
+  margin-left: 10px;
+  border-radius: 4px;
+
+  &:hover {
+    background-color: #4c4c4c;
+  }
+`;
+
 const RequestEditor = observer(() => {
   const {
       method, setMethod,
@@ -200,10 +214,42 @@ const RequestEditor = observer(() => {
       auth, setAuth,
       preRequestScript, setPreRequestScript,
       testScript, setTestScript,
-      sendRequest, loading
+      sendRequest, loading,
+      collections, saveRequestToCollection
   } = requestStore;
 
   const [activeTab, setActiveTab] = useState<'params' | 'headers' | 'body' | 'auth' | 'prerequest' | 'tests'>('params');
+
+  const handleSave = () => {
+    if (collections.length === 0) {
+      alert('Create a collection first!');
+      return;
+    }
+
+    const name = prompt('Enter request name:');
+    if (!name) return;
+
+    // Simple prompt to choose collection if multiple (or default to first)
+    // For simplicity, we just pick the first one or ask user to enter ID if we had a UI for it.
+    // Let's just prompt for collection name if there are multiple, or show a simple list in prompt?
+    // "Simple" version: just pick the first one or ask user to copy ID.
+    // Better: prompt "Enter Collection Index (0 - " + (collections.length - 1) + "):"
+
+    let collectionId = collections[0].id;
+    if (collections.length > 1) {
+        const collectionNames = collections.map((c, i) => `${i}: ${c.name}`).join('\n');
+        const indexStr = prompt(`Select Collection Index:\n${collectionNames}`, "0");
+        const index = parseInt(indexStr || "0");
+        if (!isNaN(index) && collections[index]) {
+            collectionId = collections[index].id;
+        } else {
+             return;
+        }
+    }
+
+    saveRequestToCollection(collectionId, name);
+    alert('Saved!');
+  };
 
   const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
 
@@ -265,22 +311,23 @@ const RequestEditor = observer(() => {
         <SendBtn onClick={() => sendRequest()} disabled={loading}>
           {loading ? 'Sending...' : 'Send'}
         </SendBtn>
+        <SaveBtn onClick={handleSave}>Save</SaveBtn>
       </RequestBar>
 
       <Tabs>
-        <Tab active={activeTab === 'params'} onClick={() => setActiveTab('params')}>Params ({queryParams.filter(p => p.key).length})</Tab>
-        <Tab active={activeTab === 'auth'} onClick={() => setActiveTab('auth')}>Auth</Tab>
-        <Tab active={activeTab === 'headers'} onClick={() => setActiveTab('headers')}>Headers ({headers.filter(h => h.key).length})</Tab>
-        <Tab active={activeTab === 'body'} onClick={() => setActiveTab('body')}>Body</Tab>
-        <Tab active={activeTab === 'prerequest'} onClick={() => setActiveTab('prerequest')}>Pre-req</Tab>
-        <Tab active={activeTab === 'tests'} onClick={() => setActiveTab('tests')}>Tests</Tab>
+        <Tab $active={activeTab === 'params'} onClick={() => setActiveTab('params')}>Params ({queryParams.filter(p => p.key).length})</Tab>
+        <Tab $active={activeTab === 'auth'} onClick={() => setActiveTab('auth')}>Auth</Tab>
+        <Tab $active={activeTab === 'headers'} onClick={() => setActiveTab('headers')}>Headers ({headers.filter(h => h.key).length})</Tab>
+        <Tab $active={activeTab === 'body'} onClick={() => setActiveTab('body')}>Body</Tab>
+        <Tab $active={activeTab === 'prerequest'} onClick={() => setActiveTab('prerequest')}>Pre-req</Tab>
+        <Tab $active={activeTab === 'tests'} onClick={() => setActiveTab('tests')}>Tests</Tab>
       </Tabs>
 
       <TabContent>
         {activeTab === 'params' && (
             <ParamsEditor>
                 <HeadersGrid>
-                    <HeaderRow label>
+                    <HeaderRow $label>
                         <ColLabel>Key</ColLabel>
                         <ColLabel>Value</ColLabel>
                         <ColAction></ColAction>
@@ -370,7 +417,7 @@ const RequestEditor = observer(() => {
 
         {activeTab === 'headers' && (
           <HeadersGrid>
-            <HeaderRow label>
+            <HeaderRow $label>
                 <ColLabel>Key</ColLabel>
                 <ColLabel>Value</ColLabel>
                 <ColAction></ColAction>

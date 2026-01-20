@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { observer } from 'mobx-react-lite';
 import { requestStore } from '../stores/RequestStore';
@@ -13,6 +13,28 @@ const SidebarContainer = styled.div`
 `;
 
 const SidebarHeader = styled.div`
+  padding: 0;
+  border-bottom: 1px solid #3e3e42;
+  display: flex;
+`;
+
+const TabButton = styled.button<{ $active: boolean }>`
+  flex: 1;
+  background-color: ${props => props.$active ? '#252526' : '#2d2d2d'};
+  border: none;
+  border-bottom: 2px solid ${props => props.$active ? '#0078d4' : 'transparent'};
+  color: ${props => props.$active ? '#fff' : '#858585'};
+  padding: 10px;
+  cursor: pointer;
+  font-weight: 500;
+
+  &:hover {
+    background-color: #252526;
+    color: #fff;
+  }
+`;
+
+const HeaderActions = styled.div`
   padding: 10px 15px;
   border-bottom: 1px solid #3e3e42;
   display: flex;
@@ -27,7 +49,7 @@ const SidebarHeader = styled.div`
   }
 `;
 
-const ClearBtn = styled.button`
+const ActionBtn = styled.button`
   background: none;
   border: none;
   cursor: pointer;
@@ -40,12 +62,12 @@ const ClearBtn = styled.button`
   }
 `;
 
-const HistoryList = styled.div`
+const ListContainer = styled.div`
   flex: 1;
   overflow-y: auto;
 `;
 
-const HistoryItemContainer = styled.div`
+const ItemContainer = styled.div`
   padding: 8px 15px;
   cursor: pointer;
   display: flex;
@@ -78,7 +100,7 @@ const MethodBadge = styled.span<{ method: string }>`
   }};
 `;
 
-const UrlTruncate = styled.span`
+const TextTruncate = styled.span`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -86,37 +108,140 @@ const UrlTruncate = styled.span`
   flex: 1;
 `;
 
-const EmptyHistory = styled.div`
+const EmptyState = styled.div`
   padding: 20px;
   text-align: center;
   color: #858585;
   font-style: italic;
 `;
 
+const CollectionItem = styled.div`
+  padding: 5px 0;
+`;
+
+const CollectionHeader = styled.div`
+  padding: 8px 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  font-size: 13px;
+  background-color: #2d2d2d;
+  color: #e0e0e0;
+
+  &:hover {
+    background-color: #383838;
+  }
+`;
+
+const RequestInCollection = styled(ItemContainer)`
+  padding-left: 25px;
+  border-left: 3px solid transparent;
+
+  &:hover {
+    border-left-color: #0078d4;
+  }
+`;
+
 const Sidebar = observer(() => {
-  const { history, loadHistoryItem, clearHistory } = requestStore;
+  const {
+    history,
+    loadHistoryItem,
+    clearHistory,
+    collections,
+    createCollection,
+    deleteCollection,
+    deleteRequestFromCollection
+  } = requestStore;
+
+  const [activeTab, setActiveTab] = useState<'history' | 'collections'>('history');
+
+  const handleCreateCollection = () => {
+    const name = prompt("Enter collection name:");
+    if (name) {
+      createCollection(name);
+    }
+  };
 
   return (
     <SidebarContainer>
       <SidebarHeader>
-        <h3>History</h3>
-        <ClearBtn onClick={() => clearHistory()} title="Clear History">🗑️</ClearBtn>
+        <TabButton
+          $active={activeTab === 'history'}
+          onClick={() => setActiveTab('history')}
+        >
+          History
+        </TabButton>
+        <TabButton
+          $active={activeTab === 'collections'}
+          onClick={() => setActiveTab('collections')}
+        >
+          Collections
+        </TabButton>
       </SidebarHeader>
-      <HistoryList>
-        {history.length === 0 ? (
-          <EmptyHistory>No history yet</EmptyHistory>
-        ) : (
-          history.map((item) => (
-            <HistoryItemContainer
-              key={item.id}
-              onClick={() => loadHistoryItem(item)}
-            >
-              <MethodBadge method={item.method}>{item.method}</MethodBadge>
-              <UrlTruncate title={item.url}>{item.url}</UrlTruncate>
-            </HistoryItemContainer>
-          ))
-        )}
-      </HistoryList>
+
+      {activeTab === 'history' && (
+        <>
+          <HeaderActions>
+            <h3>Recent</h3>
+            <ActionBtn onClick={() => clearHistory()} title="Clear History">🗑️</ActionBtn>
+          </HeaderActions>
+          <ListContainer>
+            {history.length === 0 ? (
+              <EmptyState>No history yet</EmptyState>
+            ) : (
+              history.map((item) => (
+                <ItemContainer
+                  key={item.id}
+                  onClick={() => loadHistoryItem(item)}
+                >
+                  <MethodBadge method={item.method}>{item.method}</MethodBadge>
+                  <TextTruncate title={item.url}>{item.url}</TextTruncate>
+                </ItemContainer>
+              ))
+            )}
+          </ListContainer>
+        </>
+      )}
+
+      {activeTab === 'collections' && (
+        <>
+           <HeaderActions>
+            <h3>Saved</h3>
+            <ActionBtn onClick={handleCreateCollection} title="New Collection">➕</ActionBtn>
+          </HeaderActions>
+          <ListContainer>
+             {collections.length === 0 ? (
+               <EmptyState>No collections. Create one!</EmptyState>
+             ) : (
+               collections.map(col => (
+                 <CollectionItem key={col.id}>
+                   <CollectionHeader>
+                      <span>{col.name} ({col.requests.length})</span>
+                      <ActionBtn onClick={(e) => {
+                        e.stopPropagation();
+                        if(confirm(`Delete collection ${col.name}?`)) deleteCollection(col.id);
+                      }}>🗑️</ActionBtn>
+                   </CollectionHeader>
+                   {col.requests.map(req => (
+                      <RequestInCollection
+                        key={req.id}
+                        onClick={() => loadHistoryItem(req)}
+                      >
+                         <MethodBadge method={req.method}>{req.method}</MethodBadge>
+                         <TextTruncate title={req.name || req.url}>{req.name || req.url}</TextTruncate>
+                         <ActionBtn onClick={(e) => {
+                           e.stopPropagation();
+                           deleteRequestFromCollection(col.id, req.id);
+                         }} style={{ fontSize: '12px', opacity: 0.4 }}>✕</ActionBtn>
+                      </RequestInCollection>
+                   ))}
+                 </CollectionItem>
+               ))
+             )}
+          </ListContainer>
+        </>
+      )}
     </SidebarContainer>
   );
 });
