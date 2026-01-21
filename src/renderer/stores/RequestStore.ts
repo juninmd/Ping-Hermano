@@ -17,6 +17,8 @@ export interface Auth {
   token?: string;
 }
 
+export type BodyType = 'text' | 'json';
+
 export interface HistoryItem {
   id: string;
   name?: string;
@@ -24,6 +26,7 @@ export interface HistoryItem {
   url: string;
   headers?: Header[];
   body?: string;
+  bodyType?: BodyType;
   auth?: Auth;
   preRequestScript?: string;
   testScript?: string;
@@ -43,6 +46,7 @@ export class RequestStore {
   headers: Header[] = [{ key: '', value: '' }];
   queryParams: QueryParam[] = [{ key: '', value: '' }];
   body: string = '';
+  bodyType: BodyType = 'text';
   auth: Auth = { type: 'none' };
   preRequestScript: string = '';
   testScript: string = '';
@@ -85,6 +89,11 @@ export class RequestStore {
     this.body = body;
   }
 
+  setBodyType(type: BodyType) {
+    this.bodyType = type;
+    this.updateContentTypeHeader();
+  }
+
   setPreRequestScript(script: string) {
     this.preRequestScript = script;
   }
@@ -96,6 +105,23 @@ export class RequestStore {
   setAuth(auth: Auth) {
     this.auth = auth;
     this.updateAuthHeader();
+  }
+
+  private updateContentTypeHeader() {
+    let newHeaders = this.headers.filter(h => h.key.toLowerCase() !== 'content-type');
+
+    if (this.bodyType === 'json') {
+      newHeaders.unshift({ key: 'Content-Type', value: 'application/json' });
+    }
+    // If text, we don't force a header, or we could remove it (which we did by filtering).
+    // This allows user to manually set it if they want something else, but if they switch to JSON, we force it.
+
+    // Ensure empty row at end if needed
+    if (newHeaders.length === 0 || (newHeaders[newHeaders.length - 1].key || newHeaders[newHeaders.length - 1].value)) {
+       newHeaders.push({ key: '', value: '' });
+    }
+
+    this.headers = newHeaders;
   }
 
   private updateAuthHeader() {
@@ -225,6 +251,7 @@ export class RequestStore {
           url: this.url,
           headers: validHeaders,
           body: this.body,
+          bodyType: this.bodyType,
           auth: this.auth,
           preRequestScript: this.preRequestScript,
           testScript: this.testScript,
@@ -255,6 +282,7 @@ export class RequestStore {
       url: this.url,
       headers: validHeaders,
       body: this.body,
+      bodyType: this.bodyType,
       auth: this.auth,
       preRequestScript: this.preRequestScript,
       testScript: this.testScript,
@@ -282,6 +310,7 @@ export class RequestStore {
     }
 
     this.body = item.body || '';
+    this.bodyType = item.bodyType || 'text';
     this.auth = item.auth || { type: 'none' };
     this.preRequestScript = item.preRequestScript || '';
     this.testScript = item.testScript || '';

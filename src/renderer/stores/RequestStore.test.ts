@@ -161,6 +161,32 @@ describe('RequestStore', () => {
       });
   });
 
+  describe('Body Type and Content-Type', () => {
+    it('should set body type to json and add Content-Type header', () => {
+        store.setBodyType('json');
+        expect(store.bodyType).toBe('json');
+        expect(store.headers[0]).toEqual({ key: 'Content-Type', value: 'application/json' });
+    });
+
+    it('should set body type to text and remove Content-Type header', () => {
+        store.setBodyType('json');
+        expect(store.headers).toHaveLength(2); // Content-Type + empty
+
+        store.setBodyType('text');
+        expect(store.bodyType).toBe('text');
+        expect(store.headers).toHaveLength(1); // empty
+        expect(store.headers[0]).toEqual({ key: '', value: '' });
+    });
+
+    it('should preserve other headers when changing body type', () => {
+        store.setHeaders([{ key: 'H1', value: 'V1' }, { key: '', value: '' }]);
+        store.setBodyType('json');
+        expect(store.headers).toHaveLength(3); // Content-Type, H1, empty
+        expect(store.headers[0].key).toBe('Content-Type');
+        expect(store.headers[1].key).toBe('H1');
+    });
+  });
+
   describe('History', () => {
       it('should load history from local storage', () => {
           const history = [{ id: '1', method: 'GET', url: 'http://test.com', date: 'now' }];
@@ -227,6 +253,7 @@ describe('RequestStore', () => {
               url: 'http://load.com',
               headers: [{ key: 'h1', value: 'v1' }],
               body: 'b',
+              bodyType: 'json',
               auth: { type: 'basic', username: 'u', password: 'p' },
               preRequestScript: 'pre',
               testScript: 'test',
@@ -237,6 +264,7 @@ describe('RequestStore', () => {
           expect(store.url).toBe('http://load.com');
           expect(store.headers).toHaveLength(2); // h1 + empty
           expect(store.body).toBe('b');
+          expect(store.bodyType).toBe('json');
           expect(store.auth.type).toBe('basic');
           expect(store.preRequestScript).toBe('pre');
           expect(store.testScript).toBe('test');

@@ -211,6 +211,7 @@ export const RequestEditor = observer(() => {
       headers, setHeaders,
       queryParams, setQueryParams,
       body, setBody,
+      bodyType, setBodyType,
       auth, setAuth,
       preRequestScript, setPreRequestScript,
       testScript, setTestScript,
@@ -447,12 +448,27 @@ export const RequestEditor = observer(() => {
         {activeTab === 'body' && (
            <BodyEditor>
              <BodyOptions>
-                 <label><input type="radio" name="body-type" checked readOnly /> raw</label>
+                 <label style={{ marginRight: 15, cursor: 'pointer' }}>
+                    <input
+                        type="radio"
+                        name="body-type"
+                        checked={bodyType === 'text'}
+                        onChange={() => setBodyType('text')}
+                    /> Raw (Text)
+                 </label>
+                 <label style={{ cursor: 'pointer' }}>
+                    <input
+                        type="radio"
+                        name="body-type"
+                        checked={bodyType === 'json'}
+                        onChange={() => setBodyType('json')}
+                    /> JSON
+                 </label>
              </BodyOptions>
              <CodeEditor
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
-                placeholder="Request Body (JSON, XML, Text...)"
+                placeholder={bodyType === 'json' ? "Request Body (JSON)" : "Request Body (Text)"}
               />
            </BodyEditor>
         )}

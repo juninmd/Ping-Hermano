@@ -91,7 +91,7 @@ describe('RequestEditor', () => {
         fireEvent.click(screen.getByText(/Headers/));
         expect(screen.getAllByPlaceholderText('Key')[0]).toBeInTheDocument();
         fireEvent.click(screen.getByText('Body'));
-        expect(screen.getByPlaceholderText('Request Body (JSON, XML, Text...)')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Request Body (Text)')).toBeInTheDocument();
         fireEvent.click(screen.getByText('Pre-req'));
         expect(screen.getByPlaceholderText('// Write your pre-request script here')).toBeInTheDocument();
         fireEvent.click(screen.getByText('Tests'));
@@ -157,9 +157,28 @@ describe('RequestEditor', () => {
     it('should edit body', () => {
         render(<RequestEditor />);
         fireEvent.click(screen.getByText('Body'));
-        const textarea = screen.getByPlaceholderText('Request Body (JSON, XML, Text...)');
+        const textarea = screen.getByPlaceholderText('Request Body (Text)');
         fireEvent.change(textarea, { target: { value: '{"test":true}' } });
         expect(requestStore.body).toBe('{"test":true}');
+    });
+
+    it('should toggle body type', () => {
+        const { rerender } = render(<RequestEditor />);
+        fireEvent.click(screen.getByText('Body'));
+
+        const jsonRadio = screen.getByLabelText('JSON');
+        fireEvent.click(jsonRadio);
+        expect(requestStore.bodyType).toBe('json');
+
+        rerender(<RequestEditor />);
+        expect(screen.getByPlaceholderText('Request Body (JSON)')).toBeInTheDocument();
+
+        const textRadio = screen.getByLabelText('Raw (Text)');
+        fireEvent.click(textRadio);
+        expect(requestStore.bodyType).toBe('text');
+
+        rerender(<RequestEditor />);
+        expect(screen.getByPlaceholderText('Request Body (Text)')).toBeInTheDocument();
     });
 
     it('should edit auth', () => {
