@@ -204,7 +204,7 @@ const SaveBtn = styled.button`
   }
 `;
 
-const RequestEditor = observer(() => {
+export const RequestEditor = observer(() => {
   const {
       method, setMethod,
       url, setUrl,

@@ -120,12 +120,12 @@ const TestResultsList = styled.div`
   padding: 10px;
 `;
 
-const TestResultItem = styled.div<{ passed: boolean }>`
+const TestResultItem = styled.div<{ $passed: boolean }>`
   display: flex;
   justify-content: space-between;
   padding: 8px;
-  background-color: ${props => props.passed ? 'rgba(106, 153, 85, 0.2)' : 'rgba(244, 135, 113, 0.2)'};
-  border-left: 3px solid ${props => props.passed ? '#6a9955' : '#f48771'};
+  background-color: ${props => props.$passed ? 'rgba(106, 153, 85, 0.2)' : 'rgba(244, 135, 113, 0.2)'};
+  border-left: 3px solid ${props => props.$passed ? '#6a9955' : '#f48771'};
   border-radius: 4px;
 `;
 
@@ -143,7 +143,7 @@ const ResponseBody = styled.textarea`
     outline: none;
 `;
 
-const ResponseViewer = observer(() => {
+export const ResponseViewer = observer(() => {
   const { response, loading, error, responseMetrics } = requestStore;
   const [activeTab, setActiveTab] = useState<'body' | 'headers' | 'preview' | 'tests'>('body');
 
@@ -155,7 +155,15 @@ const ResponseViewer = observer(() => {
     );
   }
 
-  if (!response && !error) {
+  if (error) {
+       return (
+        <ViewerContainer $empty>
+            <PlaceholderText>Error: {error.message}</PlaceholderText>
+        </ViewerContainer>
+    );
+  }
+
+  if (!response) {
     return (
         <ViewerContainer $empty>
             <PlaceholderText>Enter URL and click Send to get a response</PlaceholderText>
@@ -212,6 +220,7 @@ const ResponseViewer = observer(() => {
         )}
         {activeTab === 'preview' && (
             <iframe
+                title="Response Preview"
                 srcDoc={typeof data === 'string' ? data : JSON.stringify(data)}
                 style={{ width: '100%', height: '100%', border: 'none', backgroundColor: 'white' }}
                 sandbox="allow-scripts"
@@ -231,9 +240,10 @@ const ResponseViewer = observer(() => {
             <TestResultsList>
                 {testResults.length === 0 && <div style={{ color: '#858585' }}>No tests executed</div>}
                 {testResults.map((test: any, index: number) => (
-                    <TestResultItem key={index} passed={test.passed}>
+                    <TestResultItem key={index} $passed={test.passed}>
                         <span>{test.name}</span>
                         <span>{test.passed ? 'PASS' : 'FAIL'}</span>
+                        {test.message && <span> - {test.message}</span>}
                     </TestResultItem>
                 ))}
             </TestResultsList>

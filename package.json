@@ -43,6 +43,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/styled-components": "^5.1.36",
     "@vitejs/plugin-react": "^5.1.2",
+    "@vitest/coverage-v8": "^4.0.17",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
     "jsdom": "^27.4.0",

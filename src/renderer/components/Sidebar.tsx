@@ -143,7 +143,7 @@ const RequestInCollection = styled(ItemContainer)`
   }
 `;
 
-const Sidebar = observer(() => {
+export const Sidebar = observer(() => {
   const {
     history,
     loadHistoryItem,
@@ -184,7 +184,9 @@ const Sidebar = observer(() => {
         <>
           <HeaderActions>
             <h3>Recent</h3>
-            <ActionBtn onClick={() => clearHistory()} title="Clear History">🗑️</ActionBtn>
+            <ActionBtn onClick={() => {
+              if (confirm('Clear all history?')) clearHistory();
+            }} title="Clear History">🗑️</ActionBtn>
           </HeaderActions>
           <ListContainer>
             {history.length === 0 ? (
