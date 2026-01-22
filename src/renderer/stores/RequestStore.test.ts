@@ -413,4 +413,158 @@ describe('RequestStore', () => {
            expect(store.responseMetrics.size).toContain('MB');
       });
   });
+
+  describe('Environments', () => {
+      it('should create environment', () => {
+          store.createEnvironment('Test Env');
+          expect(store.environments).toHaveLength(1);
+          expect(store.environments[0].name).toBe('Test Env');
+          expect(store.activeEnvironmentId).toBe(store.environments[0].id);
+      });
+
+      it('should update environment', () => {
+          store.createEnvironment('Test Env');
+          const id = store.environments[0].id;
+          store.updateEnvironment(id, 'Updated Env', [{ key: 'var', value: 'val', enabled: true }]);
+          expect(store.environments[0].name).toBe('Updated Env');
+          expect(store.environments[0].variables[0].key).toBe('var');
+      });
+
+      it('should delete environment', () => {
+          store.createEnvironment('Test Env');
+          const id = store.environments[0].id;
+          store.deleteEnvironment(id);
+          expect(store.environments).toHaveLength(0);
+          expect(store.activeEnvironmentId).toBeNull();
+      });
+
+      it('should set active environment', () => {
+          store.createEnvironment('Env 1');
+          store.createEnvironment('Env 2');
+          const id1 = store.environments[0].id;
+          const id2 = store.environments[1].id;
+
+          store.setActiveEnvironment(id2);
+          expect(store.activeEnvironmentId).toBe(id2);
+
+          store.setActiveEnvironment(null);
+          expect(store.activeEnvironmentId).toBeNull();
+      });
+
+      it('should persist environments and active state', () => {
+          store.createEnvironment('Persist Env');
+          const id = store.environments[0].id;
+
+          // Mimic reloading store (constructor loads from localStorage)
+          const newStore = new RequestStore();
+          expect(newStore.environments).toHaveLength(1);
+          expect(newStore.activeEnvironmentId).toBe(id);
+      });
+
+      it('should pass environment variables to request', async () => {
+          mockMakeRequest.mockResolvedValue({ data: '' });
+          store.createEnvironment('My Env');
+          const id = store.environments[0].id;
+          store.updateEnvironment(id, 'My Env', [
+              { key: 'baseUrl', value: 'http://api.com', enabled: true },
+              { key: 'secret', value: 'hidden', enabled: false }
+          ]);
+
+          store.setUrl('http://example.com');
+          await store.sendRequest();
+
+          expect(mockMakeRequest).toHaveBeenCalledWith(expect.objectContaining({
+              environment: { baseUrl: 'http://api.com' }
+          }));
+      });
+  });
+
+  describe('Form Data and URL Encoded', () => {
+      it('should set form data', () => {
+          const data = [{ key: 'k', value: 'v', type: 'text' as const }];
+          store.setBodyFormData(data);
+          expect(store.bodyFormData).toEqual(data);
+      });
+
+      it('should set url encoded data', () => {
+          const data = [{ key: 'k', value: 'v' }];
+          store.setBodyUrlEncoded(data);
+          expect(store.bodyUrlEncoded).toEqual(data);
+      });
+
+      it('should set Content-Type for x-www-form-urlencoded', () => {
+          store.setBodyType('x-www-form-urlencoded');
+          expect(store.headers[0]).toEqual({ key: 'Content-Type', value: 'application/x-www-form-urlencoded' });
+      });
+
+      it('should pass form data to request', async () => {
+          mockMakeRequest.mockResolvedValue({ data: '' });
+          store.setBodyType('form-data');
+          store.setBodyFormData([{ key: 'k', value: 'v', type: 'text' }]);
+          store.setUrl('http://example.com');
+          await store.sendRequest();
+
+           expect(mockMakeRequest).toHaveBeenCalledWith(expect.objectContaining({
+              bodyType: 'form-data',
+              bodyFormData: [{ key: 'k', value: 'v', type: 'text' }]
+          }));
+      });
+
+      it('should pass url encoded data to request', async () => {
+          mockMakeRequest.mockResolvedValue({ data: '' });
+          store.setBodyType('x-www-form-urlencoded');
+          store.setBodyUrlEncoded([{ key: 'k', value: 'v' }]);
+          store.setUrl('http://example.com');
+          await store.sendRequest();
+
+           expect(mockMakeRequest).toHaveBeenCalledWith(expect.objectContaining({
+              bodyType: 'x-www-form-urlencoded',
+              bodyUrlEncoded: [{ key: 'k', value: 'v' }]
+          }));
+      });
+  });
+
+  describe('API Key Auth', () => {
+      it('should inject API Key into header', async () => {
+          mockMakeRequest.mockResolvedValue({ data: '' });
+          store.setAuth({
+              type: 'apikey',
+              apiKey: { key: 'X-API-KEY', value: '12345', addTo: 'header' }
+          });
+          store.setUrl('http://example.com');
+          await store.sendRequest();
+
+          expect(mockMakeRequest).toHaveBeenCalledWith(expect.objectContaining({
+              headers: expect.arrayContaining([{ key: 'X-API-KEY', value: '12345' }])
+          }));
+      });
+
+      it('should inject API Key into query param', async () => {
+          mockMakeRequest.mockResolvedValue({ data: '' });
+          store.setAuth({
+              type: 'apikey',
+              apiKey: { key: 'api_key', value: '12345', addTo: 'query' }
+          });
+          store.setUrl('http://example.com');
+          await store.sendRequest();
+
+          expect(mockMakeRequest).toHaveBeenCalledWith(expect.objectContaining({
+              url: 'http://example.com?api_key=12345'
+          }));
+      });
+
+      it('should append API Key to existing query params', async () => {
+          mockMakeRequest.mockResolvedValue({ data: '' });
+          store.setAuth({
+              type: 'apikey',
+              apiKey: { key: 'api_key', value: '12345', addTo: 'query' }
+          });
+          store.setUrl('http://example.com?foo=bar');
+          await store.sendRequest();
+
+          expect(mockMakeRequest).toHaveBeenCalledWith(expect.objectContaining({
+              url: 'http://example.com?foo=bar&api_key=12345'
+          }));
+      });
+  });
 });

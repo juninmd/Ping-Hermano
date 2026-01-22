@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { observer } from 'mobx-react-lite';
-import { requestStore } from '../stores/RequestStore';
+import { requestStore, Environment } from '../stores/RequestStore';
+import { EnvironmentModal } from './EnvironmentModal';
 
 const SidebarContainer = styled.div`
   width: 250px;
@@ -79,6 +80,12 @@ const ItemContainer = styled.div`
   &:hover {
     background-color: #2a2d2e;
   }
+
+  &.active {
+    background-color: #37373d;
+    border-left: 3px solid #0078d4;
+    padding-left: 12px;
+  }
 `;
 
 const MethodBadge = styled.span<{ method: string }>`
@@ -151,10 +158,17 @@ export const Sidebar = observer(() => {
     collections,
     createCollection,
     deleteCollection,
-    deleteRequestFromCollection
+    deleteRequestFromCollection,
+    environments,
+    createEnvironment,
+    deleteEnvironment,
+    updateEnvironment,
+    activeEnvironmentId,
+    setActiveEnvironment
   } = requestStore;
 
-  const [activeTab, setActiveTab] = useState<'history' | 'collections'>('history');
+  const [activeTab, setActiveTab] = useState<'history' | 'collections' | 'environments'>('history');
+  const [editingEnv, setEditingEnv] = useState<Environment | null>(null);
 
   const handleCreateCollection = () => {
     const name = prompt("Enter collection name:");
@@ -162,6 +176,13 @@ export const Sidebar = observer(() => {
       createCollection(name);
     }
   };
+
+  const handleCreateEnvironment = () => {
+      const name = prompt("Enter environment name:");
+      if (name) {
+          createEnvironment(name);
+      }
+  }
 
   return (
     <SidebarContainer>
@@ -177,6 +198,12 @@ export const Sidebar = observer(() => {
           onClick={() => setActiveTab('collections')}
         >
           Collections
+        </TabButton>
+        <TabButton
+            $active={activeTab === 'environments'}
+            onClick={() => setActiveTab('environments')}
+        >
+            Envs
         </TabButton>
       </SidebarHeader>
 
@@ -243,6 +270,49 @@ export const Sidebar = observer(() => {
              )}
           </ListContainer>
         </>
+      )}
+
+      {activeTab === 'environments' && (
+          <>
+            <HeaderActions>
+                <h3>Environments</h3>
+                <ActionBtn onClick={handleCreateEnvironment} title="New Environment">➕</ActionBtn>
+            </HeaderActions>
+            <ListContainer>
+                {environments.length === 0 ? (
+                    <EmptyState>No environments created.</EmptyState>
+                ) : (
+                    environments.map(env => (
+                        <ItemContainer
+                            key={env.id}
+                            className={activeEnvironmentId === env.id ? 'active' : ''}
+                            onClick={() => setActiveEnvironment(env.id === activeEnvironmentId ? null : env.id)}
+                        >
+                            <span style={{ flex: 1 }}>{env.name}</span>
+                            <ActionBtn onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingEnv(env);
+                            }} title="Edit">✏️</ActionBtn>
+                            <ActionBtn onClick={(e) => {
+                                e.stopPropagation();
+                                if(confirm(`Delete environment ${env.name}?`)) deleteEnvironment(env.id);
+                            }} title="Delete">🗑️</ActionBtn>
+                        </ItemContainer>
+                    ))
+                )}
+            </ListContainer>
+          </>
+      )}
+
+      {editingEnv && (
+          <EnvironmentModal
+            environment={editingEnv}
+            onClose={() => setEditingEnv(null)}
+            onSave={(id, name, vars) => {
+                updateEnvironment(id, name, vars);
+                setEditingEnv(null);
+            }}
+          />
       )}
     </SidebarContainer>
   );

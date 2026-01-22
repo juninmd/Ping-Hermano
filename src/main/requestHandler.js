@@ -4,7 +4,7 @@ const sdk = require('postman-collection');
 async function handleRequest(requestData) {
   return new Promise((resolve) => {
     try {
-        const { url, method, headers, body, preRequestScript, testScript } = requestData;
+        const { url, method, headers, body, bodyFormData, bodyUrlEncoded, bodyType, preRequestScript, testScript, environment } = requestData;
 
         // Create a collection
         const collection = new sdk.Collection();
@@ -28,7 +28,25 @@ async function handleRequest(requestData) {
             header: headerList
         };
 
-        if (body) {
+        if (bodyType === 'form-data' && bodyFormData) {
+            requestDefinition.body = {
+                mode: 'formdata',
+                formdata: bodyFormData.map(item => ({
+                    key: item.key,
+                    value: item.value,
+                    type: 'text' // We currently only support text input in UI
+                }))
+            };
+        } else if (bodyType === 'x-www-form-urlencoded' && bodyUrlEncoded) {
+            requestDefinition.body = {
+                mode: 'urlencoded',
+                urlencoded: bodyUrlEncoded.map(item => ({
+                    key: item.key,
+                    value: item.value
+                }))
+            };
+        } else if (body) {
+             // Default to raw (text/json)
             requestDefinition.body = {
                 mode: 'raw',
                 raw: body
@@ -70,9 +88,19 @@ async function handleRequest(requestData) {
         let testResults = [];
         let consoleLogs = [];
 
+        // Prepare Environment
+        let environmentScope = undefined;
+        if (environment) {
+            environmentScope = new sdk.VariableScope({
+                name: 'Environment',
+                values: Object.keys(environment).map(key => ({ key, value: environment[key] }))
+            });
+        }
+
         runner.run(collection, {
             iterationCount: 1,
             stopOnError: true,
+            environment: environmentScope
         }, function(err, run) {
             if (err) {
                 console.error('Runner init error:', err);
