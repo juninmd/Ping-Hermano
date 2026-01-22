@@ -212,6 +212,8 @@ export const RequestEditor = observer(() => {
       queryParams, setQueryParams,
       body, setBody,
       bodyType, setBodyType,
+      bodyFormData, setBodyFormData,
+      bodyUrlEncoded, setBodyUrlEncoded,
       auth, setAuth,
       preRequestScript, setPreRequestScript,
       testScript, setTestScript,
@@ -294,6 +296,44 @@ export const RequestEditor = observer(() => {
     }
   }
 
+  const handleFormDataChange = (index: number, field: 'key' | 'value' | 'type', value: string) => {
+    const newData = bodyFormData.map(i => ({ ...i }));
+    (newData[index] as any)[field] = value;
+
+    if (index === newData.length - 1 && (newData[index].key || newData[index].value)) {
+      newData.push({ key: '', value: '', type: 'text' });
+    }
+
+    setBodyFormData(newData);
+  };
+
+  const removeFormData = (index: number) => {
+    if (bodyFormData.length > 1) {
+        setBodyFormData(bodyFormData.filter((_, i) => i !== index));
+    } else {
+        setBodyFormData([{ key: '', value: '', type: 'text' }]);
+    }
+  };
+
+  const handleUrlEncodedChange = (index: number, field: 'key' | 'value', value: string) => {
+    const newData = bodyUrlEncoded.map(i => ({ ...i }));
+    (newData[index] as any)[field] = value;
+
+    if (index === newData.length - 1 && (newData[index].key || newData[index].value)) {
+      newData.push({ key: '', value: '' });
+    }
+
+    setBodyUrlEncoded(newData);
+  };
+
+  const removeUrlEncoded = (index: number) => {
+    if (bodyUrlEncoded.length > 1) {
+        setBodyUrlEncoded(bodyUrlEncoded.filter((_, i) => i !== index));
+    } else {
+        setBodyUrlEncoded([{ key: '', value: '' }]);
+    }
+  };
+
   return (
     <EditorContainer>
       <RequestBar>
@@ -369,6 +409,7 @@ export const RequestEditor = observer(() => {
                   <option value="none">No Auth</option>
                   <option value="basic">Basic Auth</option>
                   <option value="bearer">Bearer Token</option>
+                  <option value="apikey">API Key</option>
                 </select>
               </div>
 
@@ -409,9 +450,45 @@ export const RequestEditor = observer(() => {
                    />
                  </div>
               )}
+
+              {auth.type === 'apikey' && (
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                   <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                     <label style={{ width: 80 }}>Key:</label>
+                     <input
+                       type="text"
+                       value={auth.apiKey?.key || ''}
+                       onChange={(e) => setAuth({ ...auth, apiKey: { key: e.target.value, value: auth.apiKey?.value || '', addTo: auth.apiKey?.addTo || 'header' } })}
+                       style={{ padding: 5, flex: 1, backgroundColor: '#3c3c3c', color: '#cccccc', border: '1px solid #3e3e42', outline: 'none' }}
+                       placeholder="Key"
+                     />
+                   </div>
+                   <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                     <label style={{ width: 80 }}>Value:</label>
+                     <input
+                       type="text"
+                       value={auth.apiKey?.value || ''}
+                       onChange={(e) => setAuth({ ...auth, apiKey: { key: auth.apiKey?.key || '', value: e.target.value, addTo: auth.apiKey?.addTo || 'header' } })}
+                       style={{ padding: 5, flex: 1, backgroundColor: '#3c3c3c', color: '#cccccc', border: '1px solid #3e3e42', outline: 'none' }}
+                       placeholder="Value"
+                     />
+                   </div>
+                   <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                     <label style={{ width: 80 }}>Add To:</label>
+                     <select
+                       value={auth.apiKey?.addTo || 'header'}
+                       onChange={(e) => setAuth({ ...auth, apiKey: { key: auth.apiKey?.key || '', value: auth.apiKey?.value || '', addTo: e.target.value as any } })}
+                       style={{ padding: 5, backgroundColor: '#3c3c3c', color: '#cccccc', border: '1px solid #3e3e42', outline: 'none' }}
+                     >
+                       <option value="header">Header</option>
+                       <option value="query">Query Params</option>
+                     </select>
+                   </div>
+                 </div>
+              )}
             </div>
             <div style={{ padding: 10, color: '#858585', fontSize: 12 }}>
-              Authorization header will be automatically generated.
+              Authorization header/params will be automatically generated.
             </div>
           </BodyEditor>
         )}
@@ -456,7 +533,7 @@ export const RequestEditor = observer(() => {
                         onChange={() => setBodyType('text')}
                     /> Raw (Text)
                  </label>
-                 <label style={{ cursor: 'pointer' }}>
+                 <label style={{ marginRight: 15, cursor: 'pointer' }}>
                     <input
                         type="radio"
                         name="body-type"
@@ -464,12 +541,89 @@ export const RequestEditor = observer(() => {
                         onChange={() => setBodyType('json')}
                     /> JSON
                  </label>
+                 <label style={{ marginRight: 15, cursor: 'pointer' }}>
+                    <input
+                        type="radio"
+                        name="body-type"
+                        checked={bodyType === 'form-data'}
+                        onChange={() => setBodyType('form-data')}
+                    /> Form Data
+                 </label>
+                 <label style={{ cursor: 'pointer' }}>
+                    <input
+                        type="radio"
+                        name="body-type"
+                        checked={bodyType === 'x-www-form-urlencoded'}
+                        onChange={() => setBodyType('x-www-form-urlencoded')}
+                    /> x-www-form-urlencoded
+                 </label>
              </BodyOptions>
-             <CodeEditor
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                placeholder={bodyType === 'json' ? "Request Body (JSON)" : "Request Body (Text)"}
-              />
+
+             {(bodyType === 'text' || bodyType === 'json') && (
+                 <CodeEditor
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    placeholder={bodyType === 'json' ? "Request Body (JSON)" : "Request Body (Text)"}
+                  />
+             )}
+
+             {bodyType === 'form-data' && (
+                <HeadersGrid>
+                    <HeaderRow $label>
+                        <ColLabel>Key</ColLabel>
+                        <ColLabel>Value</ColLabel>
+                        <ColAction></ColAction>
+                    </HeaderRow>
+                    {bodyFormData.map((item, index) => (
+                    <HeaderRow key={index}>
+                        <HeaderInput
+                            placeholder="Key"
+                            value={item.key}
+                            onChange={(e) => handleFormDataChange(index, 'key', e.target.value)}
+                        />
+                        <HeaderInput
+                            placeholder="Value"
+                            value={item.value}
+                            onChange={(e) => handleFormDataChange(index, 'value', e.target.value)}
+                        />
+                         <ColAction>
+                        {bodyFormData.length > 1 && index !== bodyFormData.length - 1 && (
+                            <RemoveBtn onClick={() => removeFormData(index)}>✕</RemoveBtn>
+                        )}
+                        </ColAction>
+                    </HeaderRow>
+                    ))}
+                </HeadersGrid>
+             )}
+
+             {bodyType === 'x-www-form-urlencoded' && (
+                <HeadersGrid>
+                    <HeaderRow $label>
+                        <ColLabel>Key</ColLabel>
+                        <ColLabel>Value</ColLabel>
+                        <ColAction></ColAction>
+                    </HeaderRow>
+                    {bodyUrlEncoded.map((item, index) => (
+                    <HeaderRow key={index}>
+                        <HeaderInput
+                            placeholder="Key"
+                            value={item.key}
+                            onChange={(e) => handleUrlEncodedChange(index, 'key', e.target.value)}
+                        />
+                        <HeaderInput
+                            placeholder="Value"
+                            value={item.value}
+                            onChange={(e) => handleUrlEncodedChange(index, 'value', e.target.value)}
+                        />
+                         <ColAction>
+                        {bodyUrlEncoded.length > 1 && index !== bodyUrlEncoded.length - 1 && (
+                            <RemoveBtn onClick={() => removeUrlEncoded(index)}>✕</RemoveBtn>
+                        )}
+                        </ColAction>
+                    </HeaderRow>
+                    ))}
+                </HeadersGrid>
+             )}
            </BodyEditor>
         )}
 

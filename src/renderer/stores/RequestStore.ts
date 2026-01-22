@@ -11,13 +11,21 @@ export interface QueryParam {
 }
 
 export interface Auth {
-  type: 'none' | 'basic' | 'bearer';
+  type: 'none' | 'basic' | 'bearer' | 'apikey';
   username?: string;
   password?: string;
   token?: string;
+  apiKey?: { key: string, value: string, addTo: 'header' | 'query' };
 }
 
-export type BodyType = 'text' | 'json';
+export type BodyType = 'text' | 'json' | 'form-data' | 'x-www-form-urlencoded';
+
+export interface BodyItem {
+  key: string;
+  value: string;
+  type?: 'text' | 'file';
+  src?: string;
+}
 
 export interface HistoryItem {
   id: string;
@@ -26,6 +34,8 @@ export interface HistoryItem {
   url: string;
   headers?: Header[];
   body?: string;
+  bodyFormData?: BodyItem[];
+  bodyUrlEncoded?: BodyItem[];
   bodyType?: BodyType;
   auth?: Auth;
   preRequestScript?: string;
@@ -39,6 +49,18 @@ export interface Collection {
   requests: HistoryItem[]; // Reuse HistoryItem structure
 }
 
+export interface Variable {
+  key: string;
+  value: string;
+  enabled: boolean;
+}
+
+export interface Environment {
+  id: string;
+  name: string;
+  variables: Variable[];
+}
+
 export class RequestStore {
   // Request State
   method: string = 'GET';
@@ -46,6 +68,8 @@ export class RequestStore {
   headers: Header[] = [{ key: '', value: '' }];
   queryParams: QueryParam[] = [{ key: '', value: '' }];
   body: string = '';
+  bodyFormData: BodyItem[] = [{ key: '', value: '', type: 'text' }];
+  bodyUrlEncoded: BodyItem[] = [{ key: '', value: '' }];
   bodyType: BodyType = 'text';
   auth: Auth = { type: 'none' };
   preRequestScript: string = '';
@@ -61,10 +85,15 @@ export class RequestStore {
   history: HistoryItem[] = [];
   collections: Collection[] = [];
 
+  // Environment State
+  environments: Environment[] = [];
+  activeEnvironmentId: string | null = null;
+
   constructor() {
     makeAutoObservable(this, {}, { autoBind: true });
     this.loadHistory();
     this.loadCollections();
+    this.loadEnvironments();
   }
 
   setMethod(method: string) {
@@ -87,6 +116,14 @@ export class RequestStore {
 
   setBody(body: string) {
     this.body = body;
+  }
+
+  setBodyFormData(data: BodyItem[]) {
+      this.bodyFormData = data;
+  }
+
+  setBodyUrlEncoded(data: BodyItem[]) {
+      this.bodyUrlEncoded = data;
   }
 
   setBodyType(type: BodyType) {
@@ -112,7 +149,13 @@ export class RequestStore {
 
     if (this.bodyType === 'json') {
       newHeaders.unshift({ key: 'Content-Type', value: 'application/json' });
+    } else if (this.bodyType === 'x-www-form-urlencoded') {
+        newHeaders.unshift({ key: 'Content-Type', value: 'application/x-www-form-urlencoded' });
     }
+    // For form-data, we usually let the runtime set it including boundary, but usually user expects to see it?
+    // Postman runtime handles it. If we set multipart/form-data manually, we must not set boundary manually usually.
+    // Let's leave it out for form-data so runtime sets it with boundary.
+
     // If text, we don't force a header, or we could remove it (which we did by filtering).
     // This allows user to manually set it if they want something else, but if they switch to JSON, we force it.
 
@@ -227,6 +270,65 @@ export class RequestStore {
     localStorage.setItem('requestCollections', JSON.stringify(this.collections));
   }
 
+  loadEnvironments() {
+    const savedEnvs = localStorage.getItem('environments');
+    if (savedEnvs) {
+      try {
+        this.environments = JSON.parse(savedEnvs);
+      } catch (e) {
+        console.error("Failed to parse environments", e);
+      }
+    }
+    const savedActiveEnvId = localStorage.getItem('activeEnvironmentId');
+    if (savedActiveEnvId) {
+        this.activeEnvironmentId = savedActiveEnvId;
+    }
+  }
+
+  saveEnvironments() {
+    localStorage.setItem('environments', JSON.stringify(this.environments));
+    if (this.activeEnvironmentId) {
+        localStorage.setItem('activeEnvironmentId', this.activeEnvironmentId);
+    } else {
+        localStorage.removeItem('activeEnvironmentId');
+    }
+  }
+
+  createEnvironment(name: string) {
+    const newEnv: Environment = {
+      id: Date.now().toString(),
+      name,
+      variables: [{ key: '', value: '', enabled: true }]
+    };
+    this.environments.push(newEnv);
+    this.saveEnvironments();
+    if (!this.activeEnvironmentId) {
+        this.setActiveEnvironment(newEnv.id);
+    }
+  }
+
+  deleteEnvironment(id: string) {
+    this.environments = this.environments.filter(e => e.id !== id);
+    if (this.activeEnvironmentId === id) {
+        this.activeEnvironmentId = null;
+    }
+    this.saveEnvironments();
+  }
+
+  updateEnvironment(id: string, name: string, variables: Variable[]) {
+      const env = this.environments.find(e => e.id === id);
+      if (env) {
+          env.name = name;
+          env.variables = variables;
+          this.saveEnvironments();
+      }
+  }
+
+  setActiveEnvironment(id: string | null) {
+      this.activeEnvironmentId = id;
+      this.saveEnvironments();
+  }
+
   createCollection(name: string) {
     const newCollection: Collection = {
       id: Date.now().toString(),
@@ -251,6 +353,8 @@ export class RequestStore {
           url: this.url,
           headers: validHeaders,
           body: this.body,
+          bodyFormData: this.bodyFormData,
+          bodyUrlEncoded: this.bodyUrlEncoded,
           bodyType: this.bodyType,
           auth: this.auth,
           preRequestScript: this.preRequestScript,
@@ -282,6 +386,8 @@ export class RequestStore {
       url: this.url,
       headers: validHeaders,
       body: this.body,
+      bodyFormData: this.bodyFormData,
+      bodyUrlEncoded: this.bodyUrlEncoded,
       bodyType: this.bodyType,
       auth: this.auth,
       preRequestScript: this.preRequestScript,
@@ -311,6 +417,8 @@ export class RequestStore {
 
     this.body = item.body || '';
     this.bodyType = item.bodyType || 'text';
+    this.bodyFormData = item.bodyFormData || [{ key: '', value: '', type: 'text' }];
+    this.bodyUrlEncoded = item.bodyUrlEncoded || [{ key: '', value: '' }];
     this.auth = item.auth || { type: 'none' };
     this.preRequestScript = item.preRequestScript || '';
     this.testScript = item.testScript || '';
@@ -332,15 +440,42 @@ export class RequestStore {
     const startTime = performance.now();
 
     try {
+      let finalUrl = this.url;
       const validHeaders = this.headers.filter(h => h.key.trim() !== '');
 
+      // Handle API Key
+      if (this.auth.type === 'apikey' && this.auth.apiKey) {
+          if (this.auth.apiKey.addTo === 'header') {
+              validHeaders.push({ key: this.auth.apiKey.key, value: this.auth.apiKey.value });
+          } else if (this.auth.apiKey.addTo === 'query') {
+              const separator = finalUrl.includes('?') ? '&' : '?';
+              finalUrl = `${finalUrl}${separator}${this.auth.apiKey.key}=${encodeURIComponent(this.auth.apiKey.value)}`;
+          }
+      }
+
+      let environmentVariables: Record<string, string> = {};
+      if (this.activeEnvironmentId) {
+          const env = this.environments.find(e => e.id === this.activeEnvironmentId);
+          if (env) {
+              env.variables.forEach(v => {
+                  if (v.enabled && v.key) {
+                      environmentVariables[v.key] = v.value;
+                  }
+              });
+          }
+      }
+
       const result = await window.electronAPI.makeRequest({
-        url: this.url,
+        url: finalUrl,
         method: this.method,
         headers: validHeaders,
         body: this.body,
+        bodyFormData: this.bodyFormData.filter(i => i.key),
+        bodyUrlEncoded: this.bodyUrlEncoded.filter(i => i.key),
+        bodyType: this.bodyType,
         preRequestScript: this.preRequestScript,
-        testScript: this.testScript
+        testScript: this.testScript,
+        environment: environmentVariables
       });
 
       const endTime = performance.now();
