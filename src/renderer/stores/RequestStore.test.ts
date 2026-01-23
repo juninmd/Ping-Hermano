@@ -302,6 +302,14 @@ describe('RequestStore', () => {
           consoleSpy.mockRestore();
       });
 
+      it('should handle invalid environments json', () => {
+          localStorage.setItem('environments', 'invalid');
+          const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+          store = new RequestStore();
+          expect(store.environments).toEqual([]);
+          consoleSpy.mockRestore();
+      });
+
       it('should create collection', () => {
           store.createCollection('New Col');
           expect(store.collections).toHaveLength(1);
@@ -430,6 +438,12 @@ describe('RequestStore', () => {
           expect(store.environments[0].variables[0].key).toBe('var');
       });
 
+      it('should ignore update for non-existent environment', () => {
+          store.createEnvironment('Test Env');
+          store.updateEnvironment('invalid-id', 'Updated Env', []);
+          expect(store.environments[0].name).toBe('Test Env');
+      });
+
       it('should delete environment', () => {
           store.createEnvironment('Test Env');
           const id = store.environments[0].id;
@@ -495,6 +509,12 @@ describe('RequestStore', () => {
       it('should set Content-Type for x-www-form-urlencoded', () => {
           store.setBodyType('x-www-form-urlencoded');
           expect(store.headers[0]).toEqual({ key: 'Content-Type', value: 'application/x-www-form-urlencoded' });
+      });
+
+      it('should not set Content-Type for form-data (let runtime handle boundary)', () => {
+          store.setBodyType('form-data');
+          // Should not have content-type
+          expect(store.headers.some(h => h.key.toLowerCase() === 'content-type')).toBe(false);
       });
 
       it('should pass form data to request', async () => {
