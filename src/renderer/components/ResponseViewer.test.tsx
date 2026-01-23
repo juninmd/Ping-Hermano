@@ -1,18 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ResponseViewer } from './ResponseViewer';
 import { requestStore } from '../stores/RequestStore';
 import '@testing-library/jest-dom';
-import { runInAction } from 'mobx';
+import { runInAction, configure } from 'mobx';
 
-// Mock mobx-react-lite observer
-vi.mock('mobx-react-lite', async () => {
-    const actual = await vi.importActual('mobx-react-lite');
-    return {
-        ...actual,
-        observer: (component: any) => component,
-    };
-});
+configure({ enforceActions: "never" });
 
 describe('ResponseViewer', () => {
     beforeEach(() => {
@@ -22,6 +15,88 @@ describe('ResponseViewer', () => {
             requestStore.error = null;
             requestStore.responseMetrics = { time: 0, size: '0 B' };
         });
+        vi.restoreAllMocks();
+    });
+
+    it('should show loading state', () => {
+        runInAction(() => {
+            requestStore.loading = true;
+        });
+        render(<ResponseViewer />);
+        expect(screen.getByText('Loading...')).toBeInTheDocument();
+    });
+
+    it('should show error state', () => {
+        runInAction(() => {
+            requestStore.error = { message: 'Network Error' };
+        });
+        render(<ResponseViewer />);
+        expect(screen.getByText('Error: Network Error')).toBeInTheDocument();
+    });
+
+    it('should show placeholder when no response', () => {
+        render(<ResponseViewer />);
+        expect(screen.getByText('Enter URL and click Send to get a response')).toBeInTheDocument();
+    });
+
+    it('should render response details', () => {
+        runInAction(() => {
+            requestStore.response = {
+                status: 200,
+                statusText: 'OK',
+                data: { success: true },
+                headers: { 'content-type': 'application/json' },
+                testResults: []
+            };
+            requestStore.responseMetrics = { time: 100, size: '15 B' };
+        });
+        render(<ResponseViewer />);
+        expect(screen.getByText(/Status:/)).toBeInTheDocument();
+        expect(screen.getByText(/200 OK/)).toBeInTheDocument();
+        expect(screen.getByText('Time: 100ms')).toBeInTheDocument();
+        expect(screen.getByText('Size: 15 B')).toBeInTheDocument();
+    });
+
+    it('should switch tabs', () => {
+         runInAction(() => {
+            requestStore.response = {
+                status: 200,
+                statusText: 'OK',
+                data: '<html></html>',
+                headers: { 'h1': 'v1' },
+                testResults: [{ name: 'T1', passed: true }]
+            };
+        });
+        render(<ResponseViewer />);
+
+        fireEvent.click(screen.getByText('Preview'));
+        expect(screen.getByTitle('Response Preview')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByText('Headers'));
+        expect(screen.getByDisplayValue('h1')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('v1')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByText(/Test Results/));
+        expect(screen.getByText('T1')).toBeInTheDocument();
+        expect(screen.getByText('PASS')).toBeInTheDocument();
+    });
+
+    it('should display failed tests', () => {
+         runInAction(() => {
+            requestStore.response = {
+                status: 200,
+                statusText: 'OK',
+                data: {},
+                headers: {},
+                testResults: [{ name: 'T1', passed: false, message: 'Expected 1 to be 2' }]
+            };
+        });
+        render(<ResponseViewer />);
+        fireEvent.click(screen.getByText(/Test Results/));
+
+        expect(screen.getByText('T1')).toBeInTheDocument();
+        expect(screen.getByText('FAIL')).toBeInTheDocument();
+        expect(screen.getByText(/Expected 1 to be 2/)).toBeInTheDocument();
     });
 
     it('should format body as string if JSON parse fails', () => {
@@ -63,24 +138,7 @@ describe('ResponseViewer', () => {
         expect(screen.getByDisplayValue(/{\s+"a": 1\s+}/)).toBeInTheDocument();
     });
 
-    it('should handle circular object in formatBody (defensive)', () => {
-        const circular: any = { a: 1 };
-        circular.self = circular;
-
-        // This causes MobX RangeError because when we set response to observable object with circular ref?
-        // No, `requestStore.response` is observable. If we assign circular object, MobX tries to make it observable deep.
-        // We should pass it as a non-observable or make sure it's handled.
-        // Or we can mock the formatBody function input directly if we could extract it.
-        // But here we are assigning to store.
-
-        // If we assign a string that is circular JSON? JSON.stringify throws.
-        // If we assign object, MobX tries to proxy it.
-
-        // Let's assume response.data comes from API and might be circular (unlikely from JSON API but possible in JS object).
-        // If it is circular, `JSON.stringify` inside `formatBody` will throw.
-        // We need to test that `catch` block in `formatBody`.
-
-        // We can simulate `JSON.stringify` throwing by spying on it?
+    it('should handle circular object in formatBody', () => {
         const spy = vi.spyOn(JSON, 'stringify').mockImplementation(() => { throw new Error('Circular'); });
 
         runInAction(() => {
@@ -94,8 +152,6 @@ describe('ResponseViewer', () => {
         render(<ResponseViewer />);
 
         // formatBody catches and returns string conversion?
-        // catch { return content.toString(); }
-
         expect(screen.getByDisplayValue('[object Object]')).toBeInTheDocument();
 
         spy.mockRestore();
@@ -112,5 +168,18 @@ describe('ResponseViewer', () => {
         });
         render(<ResponseViewer />);
         expect(screen.getByDisplayValue('')).toBeInTheDocument();
+    });
+
+    it('should color status code correctly', async () => {
+        const { unmount } = render(<ResponseViewer />);
+
+        const statuses = [200, 300, 400, 500];
+        for (const s of statuses) {
+             runInAction(() => {
+                requestStore.response = { status: s, statusText: 'Stat', data: '', headers: {} };
+             });
+             expect(await screen.findByText(`${s} Stat`)).toBeInTheDocument();
+        }
+        unmount();
     });
 });

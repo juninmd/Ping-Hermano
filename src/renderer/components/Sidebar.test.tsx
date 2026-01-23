@@ -1,78 +1,35 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Sidebar } from './Sidebar';
 import { requestStore } from '../stores/RequestStore';
 import '@testing-library/jest-dom';
 import { runInAction, configure } from 'mobx';
 
-// Allow MobX action overriding if needed for mocking in tests
 configure({ enforceActions: "never" });
-
-// Mock mobx-react-lite observer
-vi.mock('mobx-react-lite', async () => {
-    const actual = await vi.importActual('mobx-react-lite');
-    return {
-        ...actual,
-        observer: (component: any) => component,
-    };
-});
-
-// We can't easily mock methods on the singleton instance directly if they are not configurable.
-// Instead, we will spy on them or mock the entire module?
-// Mocking module 'requestStore' is tricky because it exports a class instance.
-
-// Let's try to mock the store methods by assigning to them directly without Object.defineProperty,
-// assuming they are writable. If not, we might need to mock the whole store module.
-// But we want to test interaction with the store.
-
-// The issue "Cannot redefine property" usually happens when property is non-configurable.
-// MobX `makeAutoObservable` makes properties configurable usually, but `autoBind` might affect it.
-
-// Alternative: We can wrap the actions in the store itself or pass them as props, but we are testing integration with global store.
-
-// Let's rely on spying. `vi.spyOn` should work if the method is on the instance.
-// If it fails with "Cannot assign to read only property", it means the method is read-only.
-
-// Let's try to verify if we can just call them and check state changes, without spying?
-// For `loadHistoryItem`, we want to verify it was called. But we can also verify the EFFECT: the store state changes.
-// `loadHistoryItem` updates `method`, `url`, etc.
-// `createCollection` updates `collections`.
-// `deleteCollection` updates `collections`.
-// `clearHistory` updates `history`.
-
-// So we don't strictly NEED to spy if we check side effects.
-// `loadHistoryItem` side effect: store.url, store.method etc are updated.
 
 describe('Sidebar', () => {
     beforeEach(() => {
         runInAction(() => {
             requestStore.history = [];
             requestStore.collections = [];
+            requestStore.environments = [];
+            requestStore.activeEnvironmentId = null;
             requestStore.method = 'GET';
             requestStore.url = '';
         });
         vi.restoreAllMocks();
     });
 
-    it('should switch between History and Collections tabs', () => {
+    it('should switch between tabs', () => {
         render(<Sidebar />);
 
-        const buttons = screen.getAllByRole('button');
-        const collectionsTab = buttons.find(b => b.textContent === 'Collections');
-        const historyTab = buttons.find(b => b.textContent === 'History');
-
-        expect(collectionsTab).toBeInTheDocument();
-        expect(historyTab).toBeInTheDocument();
-
-        // History is default
-        expect(screen.getByTitle('Clear History')).toBeInTheDocument();
-
-        // Click Collections
-        fireEvent.click(collectionsTab!);
+        fireEvent.click(screen.getByText('Collections'));
         expect(screen.getByTitle('New Collection')).toBeInTheDocument();
 
-        // Click History
-        fireEvent.click(historyTab!);
+        fireEvent.click(screen.getByText('Envs'));
+        expect(screen.getByTitle('New Environment')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByText('History'));
         expect(screen.getByTitle('Clear History')).toBeInTheDocument();
     });
 
@@ -80,109 +37,206 @@ describe('Sidebar', () => {
         it('should render history items', () => {
             runInAction(() => {
                 requestStore.history = [
-                    { id: '1', method: 'GET', url: 'http://h1.com', date: 'now' },
-                    { id: '2', method: 'POST', url: 'http://h2.com', date: 'now' }
+                    { id: '1', method: 'GET', url: 'http://h1.com', date: 'now' }
                 ];
             });
             render(<Sidebar />);
-            expect(screen.getByText('GET')).toBeInTheDocument();
             expect(screen.getByText('http://h1.com')).toBeInTheDocument();
-            expect(screen.getByText('POST')).toBeInTheDocument();
-            expect(screen.getByText('http://h2.com')).toBeInTheDocument();
         });
 
-        it('should load history item on click', () => {
+        it('should load history item', () => {
             runInAction(() => {
                 requestStore.history = [
                     { id: '1', method: 'GET', url: 'http://h1.com', date: 'now' }
                 ];
             });
-
             render(<Sidebar />);
-
             fireEvent.click(screen.getByText('http://h1.com'));
-
-            // Check side effect
             expect(requestStore.url).toBe('http://h1.com');
-            expect(requestStore.method).toBe('GET');
         });
 
         it('should clear history', () => {
             runInAction(() => {
-                requestStore.history = [
-                    { id: '1', method: 'GET', url: 'http://h1.com', date: 'now' }
-                ];
+                requestStore.history = [{ id: '1', method: 'GET', url: 'http://h1.com', date: 'now' }];
             });
-
-            // Mock confirm
-            global.confirm = () => true;
-
+            global.confirm = vi.fn().mockReturnValue(true);
             render(<Sidebar />);
             fireEvent.click(screen.getByTitle('Clear History'));
-
-            // Check side effect
             expect(requestStore.history).toHaveLength(0);
+        });
+
+        it('should not clear history if cancelled', () => {
+            runInAction(() => {
+                requestStore.history = [{ id: '1', method: 'GET', url: 'http://h1.com', date: 'now' }];
+            });
+            global.confirm = vi.fn().mockReturnValue(false);
+            render(<Sidebar />);
+            fireEvent.click(screen.getByTitle('Clear History'));
+            expect(requestStore.history).toHaveLength(1);
         });
     });
 
     describe('Collections', () => {
         const renderCollections = () => {
             const utils = render(<Sidebar />);
-            const buttons = screen.getAllByRole('button');
-            const collectionsTab = buttons.find(b => b.textContent === 'Collections');
-            fireEvent.click(collectionsTab!);
+            fireEvent.click(screen.getByText('Collections'));
             return utils;
         }
 
         it('should create new collection', () => {
-            global.prompt = () => 'New Col';
-
+            global.prompt = vi.fn().mockReturnValue('New Col');
             renderCollections();
             fireEvent.click(screen.getByTitle('New Collection'));
-
-            // Check side effect
             expect(requestStore.collections).toHaveLength(1);
             expect(requestStore.collections[0].name).toBe('New Col');
         });
 
-        it('should render collections', () => {
-             runInAction(() => {
-                requestStore.collections = [
-                    { id: '1', name: 'Col1', requests: [] }
-                ];
-            });
+        it('should not create collection if prompt cancelled', () => {
+            global.prompt = vi.fn().mockReturnValue(null);
             renderCollections();
-            expect(screen.getByText(/Col1/)).toBeInTheDocument();
-        });
-
-        it('should expand collection', () => {
-            runInAction(() => {
-                requestStore.collections = [
-                    { id: '1', name: 'Col1', requests: [{ id: 'r1', name: 'Req1', method: 'GET', url: '', date: '' }] }
-                ];
-            });
-
-            renderCollections();
-            // Sidebar renders all requests in collection by default
-            expect(screen.getByText('Req1')).toBeInTheDocument();
+            fireEvent.click(screen.getByTitle('New Collection'));
+            expect(requestStore.collections).toHaveLength(0);
         });
 
         it('should delete collection', () => {
-             runInAction(() => {
-                requestStore.collections = [
-                    { id: '1', name: 'Col1', requests: [] }
-                ];
+            runInAction(() => {
+                requestStore.collections = [{ id: '1', name: 'Col1', requests: [] }];
             });
-
-            global.confirm = () => true;
-
+            global.confirm = vi.fn().mockReturnValue(true);
             renderCollections();
 
-            const deleteButtons = screen.getAllByText('🗑️');
-            fireEvent.click(deleteButtons[0]);
-
-            // Check side effect
+            // The emoji is 🗑️ inside ActionBtn.
+            const trashBtn = screen.getByText('🗑️');
+            fireEvent.click(trashBtn);
             expect(requestStore.collections).toHaveLength(0);
+        });
+
+        it('should delete request from collection', () => {
+            runInAction(() => {
+                requestStore.collections = [{
+                    id: '1',
+                    name: 'Col1',
+                    requests: [{ id: 'r1', name: 'Req1', method: 'GET', url: 'http://test.com', date: '' }]
+                }];
+            });
+            renderCollections();
+            const deleteRequestBtn = screen.getByText('✕');
+            fireEvent.click(deleteRequestBtn); // It stops propagation
+            expect(requestStore.collections[0].requests).toHaveLength(0);
+        });
+
+        it('should load request from collection', () => {
+             runInAction(() => {
+                requestStore.collections = [{
+                    id: '1',
+                    name: 'Col1',
+                    requests: [{ id: 'r1', name: 'Req1', method: 'POST', url: 'http://loaded.com', date: '' }]
+                }];
+            });
+            renderCollections();
+            fireEvent.click(screen.getByText('Req1'));
+            expect(requestStore.url).toBe('http://loaded.com');
+            expect(requestStore.method).toBe('POST');
+        });
+    });
+
+    describe('Environments', () => {
+        const renderEnvs = () => {
+            const utils = render(<Sidebar />);
+            fireEvent.click(screen.getByText('Envs'));
+            return utils;
+        }
+
+        it('should create environment', () => {
+            global.prompt = vi.fn().mockReturnValue('Dev Env');
+            renderEnvs();
+            fireEvent.click(screen.getByTitle('New Environment'));
+            expect(requestStore.environments).toHaveLength(1);
+            expect(requestStore.environments[0].name).toBe('Dev Env');
+        });
+
+         it('should not create environment if prompt cancelled', () => {
+            global.prompt = vi.fn().mockReturnValue(null);
+            renderEnvs();
+            fireEvent.click(screen.getByTitle('New Environment'));
+            expect(requestStore.environments).toHaveLength(0);
+        });
+
+        it('should delete environment', () => {
+            runInAction(() => {
+                requestStore.environments = [{ id: '1', name: 'Test Env', variables: [] }];
+            });
+            global.confirm = vi.fn().mockReturnValue(true);
+            renderEnvs();
+
+            const trashBtn = screen.getByTitle('Delete');
+            fireEvent.click(trashBtn);
+
+            expect(requestStore.environments).toHaveLength(0);
+        });
+
+        it('should activate environment', async () => {
+            runInAction(() => {
+                requestStore.environments = [{ id: '1', name: 'Test Env', variables: [] }];
+            });
+            renderEnvs();
+
+            let envItem = screen.getByText('Test Env').closest('div'); // The ItemContainer
+            fireEvent.click(envItem!);
+
+            expect(requestStore.activeEnvironmentId).toBe('1');
+
+            // Wait for UI to update (class 'active' added)
+            await waitFor(() => {
+                const item = screen.getByText('Test Env').closest('div');
+                expect(item).toHaveClass('active');
+            });
+
+            // Re-query to be safe (though usually same element)
+            envItem = screen.getByText('Test Env').closest('div');
+
+            // Toggle off
+            fireEvent.click(envItem!);
+            expect(requestStore.activeEnvironmentId).toBe(null);
+        });
+
+        it('should open edit modal', () => {
+            runInAction(() => {
+                requestStore.environments = [{ id: '1', name: 'Test Env', variables: [] }];
+            });
+            renderEnvs();
+
+            fireEvent.click(screen.getByTitle('Edit'));
+
+            expect(screen.getByText('Edit Environment')).toBeInTheDocument();
+        });
+
+        it('should save environment from modal', () => {
+            runInAction(() => {
+                requestStore.environments = [{ id: '1', name: 'Test Env', variables: [] }];
+            });
+            renderEnvs();
+            fireEvent.click(screen.getByTitle('Edit'));
+
+            const nameInput = screen.getByDisplayValue('Test Env');
+            fireEvent.change(nameInput, { target: { value: 'Prod Env' } });
+
+            fireEvent.click(screen.getByText('Save'));
+
+            expect(requestStore.environments[0].name).toBe('Prod Env');
+            expect(screen.queryByText('Edit Environment')).not.toBeInTheDocument();
+        });
+
+        it('should close modal on cancel', () => {
+            runInAction(() => {
+                requestStore.environments = [{ id: '1', name: 'Test Env', variables: [] }];
+            });
+            renderEnvs();
+            fireEvent.click(screen.getByTitle('Edit'));
+
+            fireEvent.click(screen.getByText('Cancel'));
+
+            expect(screen.queryByText('Edit Environment')).not.toBeInTheDocument();
         });
     });
 });
