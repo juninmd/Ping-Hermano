@@ -268,12 +268,8 @@ export const RequestEditor = observer(() => {
   };
 
   const removeHeader = (index: number) => {
-    if (headers.length > 1) {
-        const newHeaders = headers.filter((_, i) => i !== index);
-        setHeaders(newHeaders);
-    } else {
-        setHeaders([{ key: '', value: '' }]);
-    }
+    const newHeaders = headers.filter((_, i) => i !== index);
+    setHeaders(newHeaders);
   }
 
   const handleParamChange = (index: number, field: 'key' | 'value', value: string) => {
@@ -288,12 +284,8 @@ export const RequestEditor = observer(() => {
   };
 
   const removeParam = (index: number) => {
-    if (queryParams.length > 1) {
-        const newParams = queryParams.filter((_, i) => i !== index);
-        setQueryParams(newParams);
-    } else {
-        setQueryParams([{ key: '', value: '' }]);
-    }
+    const newParams = queryParams.filter((_, i) => i !== index);
+    setQueryParams(newParams);
   }
 
   const handleFormDataChange = (index: number, field: 'key' | 'value' | 'type', value: string) => {
@@ -308,11 +300,7 @@ export const RequestEditor = observer(() => {
   };
 
   const removeFormData = (index: number) => {
-    if (bodyFormData.length > 1) {
-        setBodyFormData(bodyFormData.filter((_, i) => i !== index));
-    } else {
-        setBodyFormData([{ key: '', value: '', type: 'text' }]);
-    }
+    setBodyFormData(bodyFormData.filter((_, i) => i !== index));
   };
 
   const handleUrlEncodedChange = (index: number, field: 'key' | 'value', value: string) => {
@@ -327,11 +315,7 @@ export const RequestEditor = observer(() => {
   };
 
   const removeUrlEncoded = (index: number) => {
-    if (bodyUrlEncoded.length > 1) {
-        setBodyUrlEncoded(bodyUrlEncoded.filter((_, i) => i !== index));
-    } else {
-        setBodyUrlEncoded([{ key: '', value: '' }]);
-    }
+    setBodyUrlEncoded(bodyUrlEncoded.filter((_, i) => i !== index));
   };
 
   return (

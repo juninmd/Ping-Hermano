@@ -87,15 +87,15 @@ const IconButton = styled.button`
   }
 `;
 
-const Button = styled.button<{ primary?: boolean }>`
+const Button = styled.button<{ $primary?: boolean }>`
   padding: 8px 16px;
-  background-color: ${props => props.primary ? '#0078d4' : '#3c3c3c'};
-  color: ${props => props.primary ? 'white' : '#cccccc'};
-  border: 1px solid ${props => props.primary ? '#0078d4' : '#3e3e42'};
+  background-color: ${props => props.$primary ? '#0078d4' : '#3c3c3c'};
+  color: ${props => props.$primary ? 'white' : '#cccccc'};
+  border: 1px solid ${props => props.$primary ? '#0078d4' : '#3e3e42'};
   cursor: pointer;
 
   &:hover {
-    background-color: ${props => props.primary ? '#0063b1' : '#4c4c4c'};
+    background-color: ${props => props.$primary ? '#0063b1' : '#4c4c4c'};
   }
 `;
 
@@ -126,11 +126,7 @@ export const EnvironmentModal: React.FC<Props> = ({ environment, onSave, onClose
   };
 
   const removeVariable = (index: number) => {
-    if (variables.length > 1) {
-        setVariables(variables.filter((_, i) => i !== index));
-    } else {
-        setVariables([{ key: '', value: '', enabled: true }]);
-    }
+    setVariables(variables.filter((_, i) => i !== index));
   };
 
   return (
@@ -176,7 +172,7 @@ export const EnvironmentModal: React.FC<Props> = ({ environment, onSave, onClose
         </ModalBody>
         <ModalFooter>
           <Button onClick={onClose}>Cancel</Button>
-          <Button primary onClick={() => onSave(environment.id, name, variables)}>Save</Button>
+          <Button $primary onClick={() => onSave(environment.id, name, variables)}>Save</Button>
         </ModalFooter>
       </ModalContent>
     </ModalOverlay>
