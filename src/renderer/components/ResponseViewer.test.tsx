@@ -219,4 +219,77 @@ describe('ResponseViewer', () => {
         render(<ResponseViewer />);
         expect(screen.getByDisplayValue('')).toBeInTheDocument();
     });
+
+    it('should render preview iframe', () => {
+        runInAction(() => {
+            requestStore.response = {
+                status: 200,
+                statusText: 'OK',
+                data: '<html><body><h1>Hello</h1></body></html>',
+                headers: {},
+                testResults: []
+            };
+            requestStore.loading = false;
+        });
+        render(<ResponseViewer />);
+
+        fireEvent.click(screen.getByText('Preview'));
+        const iframe = screen.getByTitle('Response Preview');
+        expect(iframe).toBeInTheDocument();
+        expect(iframe).toHaveAttribute('srcDoc', '<html><body><h1>Hello</h1></body></html>');
+    });
+
+    it('should render preview iframe with JSON data', () => {
+        runInAction(() => {
+            requestStore.response = {
+                status: 200,
+                statusText: 'OK',
+                data: { msg: "Hello" },
+                headers: {},
+                testResults: []
+            };
+            requestStore.loading = false;
+        });
+        render(<ResponseViewer />);
+
+        fireEvent.click(screen.getByText('Preview'));
+        const iframe = screen.getByTitle('Response Preview');
+        expect(iframe).toBeInTheDocument();
+        // It stringifies the JSON for srcDoc
+        expect(iframe).toHaveAttribute('srcDoc', '{"msg":"Hello"}');
+    });
+
+    it('should render preview iframe with null data (as string "null")', () => {
+        runInAction(() => {
+            requestStore.response = {
+                status: 200,
+                statusText: 'OK',
+                data: null,
+                headers: {},
+                testResults: []
+            };
+            requestStore.loading = false;
+        });
+        render(<ResponseViewer />);
+
+        fireEvent.click(screen.getByText('Preview'));
+        const iframe = screen.getByTitle('Response Preview');
+        expect(iframe).toBeInTheDocument();
+        expect(iframe).toHaveAttribute('srcDoc', 'null');
+    });
+
+    it('should render empty tests message when no tests executed', () => {
+        runInAction(() => {
+            requestStore.response = {
+                status: 200,
+                statusText: 'OK',
+                data: {},
+                headers: {},
+                testResults: []
+            };
+        });
+        render(<ResponseViewer />);
+        fireEvent.click(screen.getByText(/Test Results/));
+        expect(screen.getByText('No tests executed')).toBeInTheDocument();
+    });
 });
