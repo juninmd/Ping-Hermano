@@ -323,4 +323,182 @@ describe('Sidebar', () => {
             expect(screen.queryByText('Edit Environment')).not.toBeInTheDocument();
         });
     });
+
+    describe('Import/Export UI', () => {
+        const renderCollections = () => {
+            const utils = render(<Sidebar />);
+            const buttons = screen.getAllByRole('button');
+            const collectionsTab = buttons.find(b => b.textContent === 'Collections');
+            fireEvent.click(collectionsTab!);
+            return utils;
+        }
+
+        const renderEnvs = () => {
+            const utils = render(<Sidebar />);
+            const buttons = screen.getAllByRole('button');
+            const envsTab = buttons.find(b => b.textContent === 'Envs');
+            fireEvent.click(envsTab!);
+            return utils;
+        }
+
+        it('should trigger file input click on Import Collections', () => {
+            renderCollections();
+            // The file input is the previous sibling of the Import button in the div
+            const importBtn = screen.getByTitle('Import Collections');
+            // We can't easily check click() on hidden input triggered by sibling without userEvent or mocking ref
+            // But we can check if the input exists and handle change
+            expect(importBtn).toBeInTheDocument();
+        });
+
+        it('should call importCollections on file selection', async () => {
+            renderCollections();
+            const importBtn = screen.getByTitle('Import Collections');
+            const container = importBtn.parentElement;
+            const fileInput = container?.querySelector('input[type="file"]') as HTMLInputElement;
+
+            // Valid JSON for collections
+            const file = new File([JSON.stringify([{ name: 'Imported', requests: [] }])], 'cols.json', { type: 'application/json' });
+            const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+            Object.defineProperty(fileInput, 'files', {
+                value: [file]
+            });
+            fireEvent.change(fileInput);
+
+            await waitFor(() => {
+                expect(alertSpy).toHaveBeenCalledWith('Collections imported successfully!');
+            });
+            expect(requestStore.collections).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'Imported' })]));
+            alertSpy.mockRestore();
+        });
+
+        it('should trigger download on Export Collections', () => {
+            renderCollections();
+
+            global.URL.createObjectURL = vi.fn(() => 'blob:url');
+            global.URL.revokeObjectURL = vi.fn();
+            const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click');
+
+            fireEvent.click(screen.getByTitle('Export Collections'));
+
+            expect(global.URL.createObjectURL).toHaveBeenCalled();
+            expect(clickSpy).toHaveBeenCalled();
+        });
+
+         it('should call importEnvironments on file selection', async () => {
+            renderEnvs();
+            const importBtn = screen.getByTitle('Import Environments');
+            const container = importBtn.parentElement;
+            const fileInput = container?.querySelector('input[type="file"]') as HTMLInputElement;
+
+            // Valid JSON
+            const file = new File([JSON.stringify([{ name: 'ImportedEnv', variables: [] }])], 'envs.json', { type: 'application/json' });
+            const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+            Object.defineProperty(fileInput, 'files', {
+                value: [file]
+            });
+            fireEvent.change(fileInput);
+
+            await waitFor(() => {
+                expect(alertSpy).toHaveBeenCalledWith('Environments imported successfully!');
+            });
+            expect(requestStore.environments).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'ImportedEnv' })]));
+            alertSpy.mockRestore();
+        });
+
+        it('should trigger download on Export Environments', () => {
+            renderEnvs();
+
+            global.URL.createObjectURL = vi.fn(() => 'blob:url');
+            global.URL.revokeObjectURL = vi.fn();
+            const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click');
+
+            fireEvent.click(screen.getByTitle('Export Environments'));
+
+            expect(global.URL.createObjectURL).toHaveBeenCalled();
+            expect(clickSpy).toHaveBeenCalled();
+        });
+
+        it('should do nothing if file selection is cancelled (Collections)', () => {
+            renderCollections();
+            const importBtn = screen.getByTitle('Import Collections');
+            const container = importBtn.parentElement;
+            const fileInput = container?.querySelector('input[type="file"]') as HTMLInputElement;
+
+            const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+            Object.defineProperty(fileInput, 'files', {
+                value: []
+            });
+            fireEvent.change(fileInput);
+
+            expect(alertSpy).not.toHaveBeenCalled();
+            alertSpy.mockRestore();
+        });
+
+        it('should do nothing if file selection is cancelled (Environments)', () => {
+            renderEnvs();
+            const importBtn = screen.getByTitle('Import Environments');
+            const container = importBtn.parentElement;
+            const fileInput = container?.querySelector('input[type="file"]') as HTMLInputElement;
+
+            const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+            Object.defineProperty(fileInput, 'files', {
+                value: []
+            });
+            fireEvent.change(fileInput);
+
+            expect(alertSpy).not.toHaveBeenCalled();
+            alertSpy.mockRestore();
+        });
+
+        it('should not load request when clicking delete request button', () => {
+             runInAction(() => {
+                requestStore.collections = [
+                    { id: '1', name: 'Col1', requests: [{ id: 'r1', name: 'Req1', method: 'GET', url: 'http://test.com', date: '' }] }
+                ];
+                requestStore.url = '';
+            });
+
+            renderCollections();
+            const deleteRequestBtn = screen.getByText('✕');
+            fireEvent.click(deleteRequestBtn);
+
+            // Verify url didn't change (loadHistoryItem sets url)
+            expect(requestStore.url).toBe('');
+        });
+
+        it('should not toggle environment when clicking delete button', () => {
+             runInAction(() => {
+                requestStore.environments = [
+                    { id: '1', name: 'Env1', variables: [] }
+                ];
+                requestStore.activeEnvironmentId = null;
+            });
+
+            global.confirm = vi.fn().mockReturnValue(false);
+            renderEnvs();
+            const deleteBtn = screen.getByTitle('Delete');
+            fireEvent.click(deleteBtn);
+
+            expect(requestStore.activeEnvironmentId).toBeNull();
+        });
+
+        it('should not toggle environment when clicking edit button', () => {
+             runInAction(() => {
+                requestStore.environments = [
+                    { id: '1', name: 'Env1', variables: [] }
+                ];
+                requestStore.activeEnvironmentId = null;
+            });
+
+            renderEnvs();
+            const editBtn = screen.getByTitle('Edit');
+            fireEvent.click(editBtn);
+
+            expect(requestStore.activeEnvironmentId).toBeNull();
+        });
+    });
 });

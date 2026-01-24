@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { observer } from 'mobx-react-lite';
 import { requestStore } from '../stores/RequestStore';
+import { CodeSnippetModal } from './CodeSnippetModal';
 
 const EditorContainer = styled.div`
   padding: 15px;
@@ -222,6 +223,7 @@ export const RequestEditor = observer(() => {
   } = requestStore;
 
   const [activeTab, setActiveTab] = useState<'params' | 'headers' | 'body' | 'auth' | 'prerequest' | 'tests'>('params');
+  const [showCodeModal, setShowCodeModal] = useState(false);
 
   const handleSave = () => {
     if (collections.length === 0) {
@@ -337,6 +339,7 @@ export const RequestEditor = observer(() => {
           {loading ? 'Sending...' : 'Send'}
         </SendBtn>
         <SaveBtn onClick={handleSave}>Save</SaveBtn>
+        <SaveBtn onClick={() => setShowCodeModal(true)} title="Generate Code">{'</>'}</SaveBtn>
       </RequestBar>
 
       <Tabs>
@@ -633,6 +636,7 @@ export const RequestEditor = observer(() => {
            </BodyEditor>
         )}
       </TabContent>
+      {showCodeModal && <CodeSnippetModal onClose={() => setShowCodeModal(false)} />}
     </EditorContainer>
   );
 });

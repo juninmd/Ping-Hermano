@@ -467,4 +467,17 @@ describe('RequestEditor', () => {
         fireEvent.click(deleteButtons[0]);
         expect(requestStore.bodyUrlEncoded).toHaveLength(1);
     });
+
+    it('should open code generation modal', () => {
+        render(<RequestEditor />);
+        const codeButton = screen.getByTitle('Generate Code');
+        fireEvent.click(codeButton);
+        expect(screen.getAllByText('Generate Code')[0]).toBeInTheDocument(); // Header title
+        expect(screen.getByText('cURL')).toBeInTheDocument();
+
+        // Close it
+        const closeButton = screen.getAllByText('✕').find(b => b.tagName === 'BUTTON');
+        if (closeButton) fireEvent.click(closeButton);
+        expect(screen.queryByText('cURL')).not.toBeInTheDocument();
+    });
 });

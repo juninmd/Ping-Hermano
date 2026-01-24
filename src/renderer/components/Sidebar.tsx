@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
 import { observer } from 'mobx-react-lite';
 import { requestStore, Environment } from '../stores/RequestStore';
@@ -164,11 +164,18 @@ export const Sidebar = observer(() => {
     deleteEnvironment,
     updateEnvironment,
     activeEnvironmentId,
-    setActiveEnvironment
+    setActiveEnvironment,
+    importCollections,
+    exportCollections,
+    importEnvironments,
+    exportEnvironments
   } = requestStore;
 
   const [activeTab, setActiveTab] = useState<'history' | 'collections' | 'environments'>('history');
   const [editingEnv, setEditingEnv] = useState<Environment | null>(null);
+
+  const collectionFileInput = useRef<HTMLInputElement>(null);
+  const envFileInput = useRef<HTMLInputElement>(null);
 
   const handleCreateCollection = () => {
     const name = prompt("Enter collection name:");
@@ -183,6 +190,58 @@ export const Sidebar = observer(() => {
           createEnvironment(name);
       }
   }
+
+  const handleImportCollection = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+          if (ev.target?.result) {
+              const success = importCollections(ev.target.result as string);
+              if (success) alert('Collections imported successfully!');
+              else alert('Failed to import collections. Invalid format?');
+          }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+  };
+
+  const handleExportCollections = () => {
+      const data = exportCollections();
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `collections_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+  };
+
+  const handleImportEnvironment = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+          if (ev.target?.result) {
+              const success = importEnvironments(ev.target.result as string);
+               if (success) alert('Environments imported successfully!');
+               else alert('Failed to import environments. Invalid format?');
+          }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+  };
+
+  const handleExportEnvironments = () => {
+      const data = exportEnvironments();
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `environments_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+  };
 
   return (
     <SidebarContainer>
@@ -237,7 +296,18 @@ export const Sidebar = observer(() => {
         <>
            <HeaderActions>
             <h3>Saved</h3>
-            <ActionBtn onClick={handleCreateCollection} title="New Collection">➕</ActionBtn>
+            <div style={{ display: 'flex', gap: 5 }}>
+                <input
+                    type="file"
+                    accept=".json"
+                    style={{ display: 'none' }}
+                    ref={collectionFileInput}
+                    onChange={handleImportCollection}
+                />
+                <ActionBtn onClick={() => collectionFileInput.current?.click()} title="Import Collections">📥</ActionBtn>
+                <ActionBtn onClick={handleExportCollections} title="Export Collections">📤</ActionBtn>
+                <ActionBtn onClick={handleCreateCollection} title="New Collection">➕</ActionBtn>
+            </div>
           </HeaderActions>
           <ListContainer>
              {collections.length === 0 ? (
@@ -276,7 +346,18 @@ export const Sidebar = observer(() => {
           <>
             <HeaderActions>
                 <h3>Environments</h3>
-                <ActionBtn onClick={handleCreateEnvironment} title="New Environment">➕</ActionBtn>
+                <div style={{ display: 'flex', gap: 5 }}>
+                    <input
+                        type="file"
+                        accept=".json"
+                        style={{ display: 'none' }}
+                        ref={envFileInput}
+                        onChange={handleImportEnvironment}
+                    />
+                    <ActionBtn onClick={() => envFileInput.current?.click()} title="Import Environments">📥</ActionBtn>
+                    <ActionBtn onClick={handleExportEnvironments} title="Export Environments">📤</ActionBtn>
+                    <ActionBtn onClick={handleCreateEnvironment} title="New Environment">➕</ActionBtn>
+                </div>
             </HeaderActions>
             <ListContainer>
                 {environments.length === 0 ? (
