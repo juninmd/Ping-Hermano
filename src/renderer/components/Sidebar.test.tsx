@@ -242,6 +242,13 @@ describe('Sidebar', () => {
             expect(requestStore.environments[0].name).toBe('Env1');
         });
 
+        it('should not create environment if prompt cancelled', () => {
+            global.prompt = vi.fn().mockReturnValue(null);
+            renderEnvs();
+            fireEvent.click(screen.getByTitle('New Environment'));
+            expect(requestStore.environments).toHaveLength(0);
+        });
+
         it('should activate environment', () => {
              runInAction(() => {
                 requestStore.environments = [

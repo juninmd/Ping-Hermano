@@ -511,6 +511,24 @@ describe('RequestStore', () => {
           expect(store.headers[0]).toEqual({ key: 'Content-Type', value: 'application/x-www-form-urlencoded' });
       });
 
+      it('should update Content-Type when switching from json to x-www-form-urlencoded', () => {
+          store.setBodyType('json');
+          expect(store.headers[0].value).toBe('application/json');
+          store.setBodyType('x-www-form-urlencoded');
+          expect(store.headers[0].value).toBe('application/x-www-form-urlencoded');
+      });
+
+      it('should ensure empty header row exists when setting body type', () => {
+          // Setup headers without empty row
+          store.setHeaders([{ key: 'H1', value: 'V1' }]);
+
+          store.setBodyType('json');
+
+          // Should have: Content-Type, H1, Empty
+          expect(store.headers).toHaveLength(3);
+          expect(store.headers[2]).toEqual({ key: '', value: '' });
+      });
+
       it('should not set Content-Type for form-data (let runtime handle boundary)', () => {
           store.setBodyType('form-data');
           // Should not have content-type
