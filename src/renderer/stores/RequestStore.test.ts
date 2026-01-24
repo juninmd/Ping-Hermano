@@ -185,6 +185,14 @@ describe('RequestStore', () => {
         expect(store.headers[0].key).toBe('Content-Type');
         expect(store.headers[1].key).toBe('H1');
     });
+
+    it('should ensure empty row at end when updating content type', () => {
+        store.setHeaders([{ key: 'H1', value: 'V1' }]);
+        store.setBodyType('json');
+        // Expect: Content-Type, H1, Empty
+        expect(store.headers).toHaveLength(3);
+        expect(store.headers[2]).toEqual({ key: '', value: '' });
+    });
   });
 
   describe('History', () => {
@@ -585,6 +593,69 @@ describe('RequestStore', () => {
           expect(mockMakeRequest).toHaveBeenCalledWith(expect.objectContaining({
               url: 'http://example.com?foo=bar&api_key=12345'
           }));
+      });
+  });
+
+  describe('Import/Export', () => {
+      it('should export collections as JSON', () => {
+          store.createCollection('Test Col');
+          const json = store.exportCollections();
+          const parsed = JSON.parse(json);
+          expect(parsed).toHaveLength(1);
+          expect(parsed[0].name).toBe('Test Col');
+      });
+
+      it('should import collections from JSON and regenerate IDs', () => {
+          const exportData = JSON.stringify([{
+              id: 'old-id',
+              name: 'Imported Col',
+              requests: [{ id: 'req-id', url: 'http://test.com', method: 'GET' }]
+          }]);
+
+          const result = store.importCollections(exportData);
+          expect(result).toBe(true);
+          expect(store.collections).toHaveLength(1);
+          expect(store.collections[0].name).toBe('Imported Col');
+          expect(store.collections[0].id).not.toBe('old-id');
+          expect(store.collections[0].requests[0].id).not.toBe('req-id');
+      });
+
+      it('should handle invalid collection import JSON', () => {
+          const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+          const result = store.importCollections('invalid');
+          expect(result).toBe(false);
+          expect(store.collections).toHaveLength(0);
+          consoleSpy.mockRestore();
+      });
+
+      it('should export environments as JSON', () => {
+          store.createEnvironment('Test Env');
+          const json = store.exportEnvironments();
+          const parsed = JSON.parse(json);
+          expect(parsed).toHaveLength(1);
+          expect(parsed[0].name).toBe('Test Env');
+      });
+
+      it('should import environments from JSON and regenerate IDs', () => {
+          const exportData = JSON.stringify([{
+              id: 'old-env-id',
+              name: 'Imported Env',
+              variables: []
+          }]);
+
+          const result = store.importEnvironments(exportData);
+          expect(result).toBe(true);
+          expect(store.environments).toHaveLength(1);
+          expect(store.environments[0].name).toBe('Imported Env');
+          expect(store.environments[0].id).not.toBe('old-env-id');
+      });
+
+      it('should handle invalid environment import JSON', () => {
+          const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+          const result = store.importEnvironments('invalid');
+          expect(result).toBe(false);
+          expect(store.environments).toHaveLength(0);
+          consoleSpy.mockRestore();
       });
   });
 });

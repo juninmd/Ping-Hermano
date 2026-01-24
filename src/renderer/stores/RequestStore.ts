@@ -344,6 +344,55 @@ export class RequestStore {
     this.saveCollections();
   }
 
+  exportCollections() {
+    return JSON.stringify(this.collections, null, 2);
+  }
+
+  importCollections(jsonStr: string) {
+    try {
+      const parsed = JSON.parse(jsonStr);
+      if (Array.isArray(parsed)) {
+          // Regenerate IDs to avoid conflicts
+          const newCollections = parsed.map((col: any) => ({
+              ...col,
+              id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+              requests: (col.requests || []).map((req: any) => ({
+                  ...req,
+                  id: Date.now().toString() + Math.random().toString(36).substr(2, 9)
+              }))
+          }));
+          this.collections.push(...newCollections);
+          this.saveCollections();
+          return true;
+      }
+    } catch (e) {
+      console.error("Failed to import collections", e);
+    }
+    return false;
+  }
+
+  exportEnvironments() {
+    return JSON.stringify(this.environments, null, 2);
+  }
+
+  importEnvironments(jsonStr: string) {
+      try {
+          const parsed = JSON.parse(jsonStr);
+          if (Array.isArray(parsed)) {
+              const newEnvs = parsed.map((env: any) => ({
+                  ...env,
+                  id: Date.now().toString() + Math.random().toString(36).substr(2, 9)
+              }));
+              this.environments.push(...newEnvs);
+              this.saveEnvironments();
+              return true;
+          }
+      } catch (e) {
+          console.error("Failed to import environments", e);
+      }
+      return false;
+  }
+
   saveRequestToCollection(collectionId: string, name: string) {
       const validHeaders = this.headers.filter(h => h.key.trim() !== '' || h.value.trim() !== '');
       const newRequest: HistoryItem = {
