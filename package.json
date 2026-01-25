@@ -8,8 +8,34 @@
     "dev:renderer": "vite",
     "dev:electron": "wait-on tcp:5173 && electron .",
     "build": "vite build",
+    "dist": "npm run build && electron-builder",
     "start": "npm run build && electron .",
     "test": "vitest"
+  },
+  "build": {
+    "appId": "com.pinghermano.app",
+    "productName": "PingHermano",
+    "publish": [
+      "github"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "src/main/**/*",
+      "src/preload/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   },
   "repository": {
     "type": "git",
@@ -46,6 +72,7 @@
     "@vitest/coverage-v8": "^4.0.18",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
+    "electron-builder": "^26.4.0",
     "jsdom": "^27.4.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
