@@ -24,6 +24,12 @@ describe('generateCurl', () => {
         expect(code).toContain('-H "Accept: application/json"');
     });
 
+    it('should skip headers with empty key', () => {
+        const req = { ...baseRequest, headers: [{ key: '', value: 'val' }] };
+        const code = generateCurl(req);
+        expect(code).not.toContain('-H');
+    });
+
     it('should include json body', () => {
         const req: RequestData = {
             ...baseRequest,
@@ -33,6 +39,18 @@ describe('generateCurl', () => {
         };
         const code = generateCurl(req);
         expect(code).toContain('-d \'{"foo":"bar"}\'');
+    });
+
+    it('should escape single quotes in body', () => {
+        const req: RequestData = {
+            ...baseRequest,
+            method: 'POST',
+            bodyType: 'text',
+            body: "It's a test"
+        };
+        const code = generateCurl(req);
+        // It's a test -> It'\''s a test
+        expect(code).toContain("-d 'It'\\''s a test'");
     });
 
     it('should include urlencoded body', () => {
@@ -46,6 +64,17 @@ describe('generateCurl', () => {
         expect(code).toContain('--data-urlencode "foo=bar"');
     });
 
+    it('should skip urlencoded items with empty key', () => {
+        const req: RequestData = {
+            ...baseRequest,
+            method: 'POST',
+            bodyType: 'x-www-form-urlencoded',
+            bodyUrlEncoded: [{ key: '', value: 'bar' }]
+        };
+        const code = generateCurl(req);
+        expect(code).not.toContain('--data-urlencode');
+    });
+
     it('should include form-data body', () => {
         const req: RequestData = {
             ...baseRequest,
@@ -55,6 +84,17 @@ describe('generateCurl', () => {
         };
         const code = generateCurl(req);
         expect(code).toContain('-F "file=data"');
+    });
+
+    it('should skip form-data items with empty key', () => {
+        const req: RequestData = {
+            ...baseRequest,
+            method: 'POST',
+            bodyType: 'form-data',
+            bodyFormData: [{ key: '', value: 'data', type: 'text' }]
+        };
+        const code = generateCurl(req);
+        expect(code).not.toContain('-F');
     });
 });
 
@@ -106,6 +146,17 @@ describe('generateFetch', () => {
         expect(code).toContain('["foo","bar"]');
     });
 
+    it('should skip urlencoded items with empty key', () => {
+        const req: RequestData = {
+            ...baseRequest,
+            method: 'POST',
+            bodyType: 'x-www-form-urlencoded',
+            bodyUrlEncoded: [{ key: '', value: 'bar' }]
+        };
+        const code = generateFetch(req);
+        expect(code).not.toContain('body: new URLSearchParams');
+    });
+
     it('should handle form-data body', () => {
         const req: RequestData = {
             ...baseRequest,
@@ -117,6 +168,19 @@ describe('generateFetch', () => {
         expect(code).toContain('const formdata = new FormData();');
         expect(code).toContain('formdata.append("foo", "bar")');
         expect(code).toContain('body: formdata');
+    });
+
+     it('should skip form-data items with empty key', () => {
+        const req: RequestData = {
+            ...baseRequest,
+            method: 'POST',
+            bodyType: 'form-data',
+            bodyFormData: [{ key: '', value: 'bar', type: 'text' }]
+        };
+        const code = generateFetch(req);
+        // No formdata preamble
+        expect(code).not.toContain('new FormData()');
+        expect(code).not.toContain('body: formdata');
     });
 
     it('should handle invalid json body fallback to string', () => {

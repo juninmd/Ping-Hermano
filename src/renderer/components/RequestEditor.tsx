@@ -244,7 +244,8 @@ export const RequestEditor = observer(() => {
     if (collections.length > 1) {
         const collectionNames = collections.map((c, i) => `${i}: ${c.name}`).join('\n');
         const indexStr = prompt(`Select Collection Index:\n${collectionNames}`, "0");
-        const index = parseInt(indexStr || "0");
+        if (indexStr === null) return;
+        const index = parseInt(indexStr);
         if (!isNaN(index) && collections[index]) {
             collectionId = collections[index].id;
         } else {
