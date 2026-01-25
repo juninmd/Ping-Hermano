@@ -3,16 +3,9 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { ResponseViewer } from './ResponseViewer';
 import { requestStore } from '../stores/RequestStore';
 import '@testing-library/jest-dom';
-import { runInAction } from 'mobx';
+import { runInAction, configure } from 'mobx';
 
-// Mock mobx-react-lite observer
-// vi.mock('mobx-react-lite', async () => {
-//     const actual = await vi.importActual('mobx-react-lite');
-//     return {
-//         ...actual,
-//         observer: (component: any) => component,
-//     };
-// });
+configure({ enforceActions: "never" });
 
 describe('ResponseViewer', () => {
     beforeEach(() => {
@@ -123,12 +116,6 @@ describe('ResponseViewer', () => {
             });
             const { unmount } = render(<ResponseViewer />);
             const statusEl = screen.getByText(`${status} ST`);
-            // styled-components passes class, we need to check computed style or use `toHaveStyle`?
-            // jsdom doesn't fully support computed styles via stylesheets often, but toHaveStyle usually works for inline or styled-components if wired up.
-            // Or we can check the color rule.
-
-            // However, `toHaveStyle` checks inline styles or computed styles.
-            // Let's assume toHaveStyle works.
             expect(statusEl).toHaveStyle(`color: ${color}`);
             unmount();
         };
@@ -138,7 +125,6 @@ describe('ResponseViewer', () => {
         checkColor(404, '#f48771');
         checkColor(500, '#f48771');
 
-        // Coverage for default case
         runInAction(() => {
             requestStore.response = { status: 100, statusText: 'Continue', data: '', headers: {} };
         });
@@ -198,21 +184,31 @@ describe('ResponseViewer', () => {
             };
         });
         render(<ResponseViewer />);
-
-        // formatBody catches and returns string conversion?
-        // catch { return content.toString(); }
-
+        // It catches and returns content.toString(). Object toString is [object Object]
         expect(screen.getByDisplayValue('[object Object]')).toBeInTheDocument();
 
         spy.mockRestore();
     });
 
-    it('should handle null/undefined data', () => {
+    it('should handle null data', () => {
         runInAction(() => {
             requestStore.response = {
                 status: 200,
                 statusText: 'OK',
                 data: null,
+                headers: {}
+            };
+        });
+        render(<ResponseViewer />);
+        expect(screen.getByDisplayValue('')).toBeInTheDocument();
+    });
+
+    it('should handle undefined data', () => {
+        runInAction(() => {
+            requestStore.response = {
+                status: 200,
+                statusText: 'OK',
+                data: undefined,
                 headers: {}
             };
         });
@@ -255,11 +251,10 @@ describe('ResponseViewer', () => {
         fireEvent.click(screen.getByText('Preview'));
         const iframe = screen.getByTitle('Response Preview');
         expect(iframe).toBeInTheDocument();
-        // It stringifies the JSON for srcDoc
         expect(iframe).toHaveAttribute('srcDoc', '{"msg":"Hello"}');
     });
 
-    it('should render preview iframe with null data (as string "null")', () => {
+    it('should render preview iframe with null data', () => {
         runInAction(() => {
             requestStore.response = {
                 status: 200,

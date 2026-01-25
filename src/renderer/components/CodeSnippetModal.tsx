@@ -147,7 +147,7 @@ export const CodeSnippetModal = observer(({ onClose }: Props) => {
   };
 
   return (
-    <Overlay onClick={onClose}>
+    <Overlay onClick={onClose} data-testid="modal-overlay">
       <ModalContent onClick={e => e.stopPropagation()}>
         <Header>
           <span>Generate Code</span>

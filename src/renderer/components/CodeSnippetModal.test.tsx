@@ -86,9 +86,8 @@ describe('CodeSnippetModal', () => {
 
     it('should close on overlay click', () => {
         const close = vi.fn();
-        const { container } = render(<CodeSnippetModal onClose={close} />);
-        // Overlay is the first child
-        fireEvent.click(container.firstChild as Element);
+        render(<CodeSnippetModal onClose={close} />);
+        fireEvent.click(screen.getByTestId('modal-overlay'));
         expect(close).toHaveBeenCalled();
     });
 
