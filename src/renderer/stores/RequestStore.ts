@@ -187,33 +187,29 @@ export class RequestStore {
   }
 
   private parseQueryParams() {
-    try {
-        let searchPart = '';
-        const queryIndex = this.url.indexOf('?');
-        if (queryIndex !== -1) {
-            searchPart = this.url.substring(queryIndex + 1);
-        }
-
-        if (!searchPart) {
-           if (this.queryParams.length > 1 || (this.queryParams[0].key || this.queryParams[0].value)) {
-               this.queryParams = [{ key: '', value: '' }];
-           }
-           return;
-        }
-
-        const params = new URLSearchParams(searchPart);
-        const newParams: QueryParam[] = [];
-        params.forEach((value, key) => {
-            newParams.push({ key, value });
-        });
-
-        // Always add an empty row at the end
-        newParams.push({ key: '', value: '' });
-
-        this.queryParams = newParams;
-    } catch (e) {
-        // Ignore parsing errors
+    let searchPart = '';
+    const queryIndex = this.url.indexOf('?');
+    if (queryIndex !== -1) {
+        searchPart = this.url.substring(queryIndex + 1);
     }
+
+    if (!searchPart) {
+       if (this.queryParams.length > 1 || (this.queryParams[0].key || this.queryParams[0].value)) {
+           this.queryParams = [{ key: '', value: '' }];
+       }
+       return;
+    }
+
+    const params = new URLSearchParams(searchPart);
+    const newParams: QueryParam[] = [];
+    params.forEach((value, key) => {
+        newParams.push({ key, value });
+    });
+
+    // Always add an empty row at the end
+    newParams.push({ key: '', value: '' });
+
+    this.queryParams = newParams;
   }
 
   private updateUrlFromParams() {
