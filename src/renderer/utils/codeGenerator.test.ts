@@ -30,6 +30,12 @@ describe('generateCurl', () => {
         expect(code).not.toContain('-H');
     });
 
+    it('should skip headers with empty value', () => {
+        const req = { ...baseRequest, headers: [{ key: 'Accept', value: '' }] };
+        const code = generateCurl(req);
+        expect(code).not.toContain('-H');
+    });
+
     it('should include json body', () => {
         const req: RequestData = {
             ...baseRequest,
@@ -75,6 +81,17 @@ describe('generateCurl', () => {
         expect(code).not.toContain('--data-urlencode');
     });
 
+    it('should include urlencoded items with empty value', () => {
+        const req: RequestData = {
+            ...baseRequest,
+            method: 'POST',
+            bodyType: 'x-www-form-urlencoded',
+            bodyUrlEncoded: [{ key: 'foo', value: '' }]
+        };
+        const code = generateCurl(req);
+        expect(code).toContain('--data-urlencode "foo="');
+    });
+
     it('should include form-data body', () => {
         const req: RequestData = {
             ...baseRequest,
@@ -96,6 +113,17 @@ describe('generateCurl', () => {
         const code = generateCurl(req);
         expect(code).not.toContain('-F');
     });
+
+    it('should include form-data items with empty value', () => {
+        const req: RequestData = {
+            ...baseRequest,
+            method: 'POST',
+            bodyType: 'form-data',
+            bodyFormData: [{ key: 'file', value: '', type: 'text' }]
+        };
+        const code = generateCurl(req);
+        expect(code).toContain('-F "file="');
+    });
 });
 
 describe('generateFetch', () => {
@@ -109,6 +137,12 @@ describe('generateFetch', () => {
         const req = { ...baseRequest, headers: [{ key: 'Accept', value: 'application/json' }] };
         const code = generateFetch(req);
         expect(code).toContain('"Accept": "application/json"');
+    });
+
+    it('should skip headers with empty value', () => {
+         const req = { ...baseRequest, headers: [{ key: 'Accept', value: '' }] };
+         const code = generateFetch(req);
+         expect(code).not.toContain('"Accept"');
     });
 
     it('should format json body', () => {

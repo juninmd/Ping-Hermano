@@ -64,12 +64,20 @@ describe('RequestStore', () => {
     });
 
     it('should handle parsing errors gracefully', () => {
-        // Not easy to cause URLSearchParams to throw, but good to have safeguard
-        // Let's try malformed encoding
-        const badUrl = 'https://example.com?a=%E0%A4%A';
+        // Mock URLSearchParams to throw error
+        const originalURLSearchParams = global.URLSearchParams;
+        global.URLSearchParams = vi.fn().mockImplementation(() => {
+            throw new Error('Parsing error');
+        });
+
+        const badUrl = 'https://example.com?a=b';
         store.setUrl(badUrl);
-        // Should not crash
-        expect(store.url).toBe(badUrl);
+        // Should catch error and not update queryParams (or leave as is)
+        // Since setUrl calls parseQueryParams which sets queryParams.
+        // If it throws, queryParams should remain default or previous.
+        expect(store.queryParams).toEqual([{ key: '', value: '' }]);
+
+        global.URLSearchParams = originalURLSearchParams;
     });
 
     it('should handle existing params when setting empty url', () => {

@@ -32,11 +32,20 @@ function createHandleRequest(runtimeInstance) {
             if (bodyType === 'form-data' && bodyFormData) {
                 requestDefinition.body = {
                     mode: 'formdata',
-                    formdata: bodyFormData.map(item => ({
-                        key: item.key,
-                        value: item.value,
-                        type: 'text' // We currently only support text input in UI
-                    }))
+                    formdata: bodyFormData.map(item => {
+                        if (item.type === 'file') {
+                            return {
+                                key: item.key,
+                                src: item.src,
+                                type: 'file'
+                            };
+                        }
+                        return {
+                            key: item.key,
+                            value: item.value,
+                            type: 'text'
+                        };
+                    })
                 };
             } else if (bodyType === 'x-www-form-urlencoded' && bodyUrlEncoded) {
                 requestDefinition.body = {

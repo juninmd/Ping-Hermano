@@ -364,6 +364,24 @@ describe('Sidebar', () => {
             expect(global.alert).not.toHaveBeenCalled();
         });
 
+        it('should alert if import collections fails', async () => {
+            renderCollections();
+            const importBtn = screen.getByTitle('Import Collections');
+            const container = importBtn.parentElement;
+            const fileInput = container?.querySelector('input[type="file"]') as HTMLInputElement;
+
+            const file = new File(['invalid'], 'cols.json', { type: 'application/json' });
+
+            Object.defineProperty(fileInput, 'files', {
+                value: [file]
+            });
+            fireEvent.change(fileInput);
+
+            await waitFor(() => {
+                expect(global.alert).toHaveBeenCalledWith('Failed to import collections. Invalid format?');
+            });
+        });
+
         it('should do nothing if file selection is cancelled (Environments)', () => {
             renderEnvs();
             const importBtn = screen.getByTitle('Import Environments');
@@ -375,6 +393,24 @@ describe('Sidebar', () => {
             });
             fireEvent.change(fileInput);
             expect(global.alert).not.toHaveBeenCalled();
+        });
+
+        it('should alert if import environments fails', async () => {
+             renderEnvs();
+             const importBtn = screen.getByTitle('Import Environments');
+             const container = importBtn.parentElement;
+             const fileInput = container?.querySelector('input[type="file"]') as HTMLInputElement;
+
+             const file = new File(['invalid'], 'envs.json', { type: 'application/json' });
+
+             Object.defineProperty(fileInput, 'files', {
+                 value: [file]
+             });
+             fireEvent.change(fileInput);
+
+             await waitFor(() => {
+                 expect(global.alert).toHaveBeenCalledWith('Failed to import environments. Invalid format?');
+             });
         });
 
         it('should not load request when clicking delete request button (stopPropagation)', () => {
