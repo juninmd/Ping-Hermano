@@ -69,6 +69,30 @@ describe('handleRequest', () => {
     expect(item.request.body.mode).toBe('formdata');
   });
 
+  it('should handle request with file in form-data body', async () => {
+    let capturedCollection;
+    mockRun.mockImplementation((collection, options, callback) => {
+       capturedCollection = collection;
+       const runObj = { start: (callbacks) => callbacks.done(null, {}) };
+       callback(null, runObj);
+    });
+
+    await handleRequest({
+        url: 'http://example.com',
+        method: 'POST',
+        bodyType: 'form-data',
+        bodyFormData: [{ key: 'file', value: 'name.png', type: 'file', src: '/path/to/img.png' }]
+    });
+
+    const item = capturedCollection.items.members[0];
+    const formdata = item.request.body.formdata;
+    expect(formdata.count()).toBe(1);
+    const member = formdata.idx(0);
+    expect(member.key).toBe('file');
+    expect(member.type).toBe('file');
+    expect(member.src).toBe('/path/to/img.png');
+  });
+
   it('should handle request with urlencoded body', async () => {
     let capturedCollection;
     mockRun.mockImplementation((collection, options, callback) => {

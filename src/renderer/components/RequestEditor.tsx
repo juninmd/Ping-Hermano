@@ -291,11 +291,12 @@ export const RequestEditor = observer(() => {
     setQueryParams(newParams);
   }
 
-  const handleFormDataChange = (index: number, field: 'key' | 'value' | 'type', value: string) => {
-    const newData = bodyFormData.map(i => ({ ...i }));
+  const handleFormDataChange = (index: number, field: 'key' | 'value' | 'type' | 'src', value: string) => {
+    // Use requestStore.bodyFormData to ensure we have the latest state if called multiple times in one event
+    const newData = requestStore.bodyFormData.map(i => ({ ...i }));
     (newData[index] as any)[field] = value;
 
-    if (index === newData.length - 1 && (newData[index].key || newData[index].value)) {
+    if (index === newData.length - 1 && (newData[index].key || newData[index].value || newData[index].src)) {
       newData.push({ key: '', value: '', type: 'text' });
     }
 
@@ -358,6 +359,7 @@ export const RequestEditor = observer(() => {
                 <HeadersGrid>
                     <HeaderRow $label>
                         <ColLabel>Key</ColLabel>
+                        <ColLabel style={{ width: 100, flex: 'none' }}>Type</ColLabel>
                         <ColLabel>Value</ColLabel>
                         <ColAction></ColAction>
                     </HeaderRow>
@@ -569,11 +571,45 @@ export const RequestEditor = observer(() => {
                             value={item.key}
                             onChange={(e) => handleFormDataChange(index, 'key', e.target.value)}
                         />
-                        <HeaderInput
-                            placeholder="Value"
-                            value={item.value}
-                            onChange={(e) => handleFormDataChange(index, 'value', e.target.value)}
-                        />
+                        <div style={{ width: 100, borderRight: '1px solid #3e3e42', display: 'flex' }}>
+                            <select
+                                value={item.type || 'text'}
+                                onChange={(e) => handleFormDataChange(index, 'type', e.target.value)}
+                                style={{
+                                    flex: 1,
+                                    backgroundColor: 'transparent',
+                                    color: '#cccccc',
+                                    border: 'none',
+                                    padding: '8px',
+                                    outline: 'none'
+                                }}
+                            >
+                                <option value="text">Text</option>
+                                <option value="file">File</option>
+                            </select>
+                        </div>
+                        {item.type === 'file' ? (
+                            <div style={{ flex: 1, display: 'flex', alignItems: 'center', borderRight: '1px solid #3e3e42', overflow: 'hidden' }}>
+                                <input
+                                    type="file"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            const path = window.electronAPI ? window.electronAPI.getFilePath(file) : file.name;
+                                            handleFormDataChange(index, 'src', path);
+                                            handleFormDataChange(index, 'value', file.name);
+                                        }
+                                    }}
+                                    style={{ color: '#cccccc', padding: '8px', width: '100%' }}
+                                />
+                            </div>
+                        ) : (
+                            <HeaderInput
+                                placeholder="Value"
+                                value={item.value}
+                                onChange={(e) => handleFormDataChange(index, 'value', e.target.value)}
+                            />
+                        )}
                          <ColAction>
                         {bodyFormData.length > 1 && index !== bodyFormData.length - 1 && (
                             <RemoveBtn onClick={() => removeFormData(index)}>✕</RemoveBtn>

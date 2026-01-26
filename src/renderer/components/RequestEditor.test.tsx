@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { RequestEditor } from './RequestEditor';
 import { requestStore } from '../stores/RequestStore';
 import '@testing-library/jest-dom';
@@ -44,6 +45,59 @@ describe('RequestEditor', () => {
         // Mock window.alert and prompt
         global.alert = vi.fn();
         global.prompt = vi.fn();
+    });
+
+    it('should handle file upload in form-data', async () => {
+        const user = userEvent.setup();
+        // Mock getFilePath
+        (window.electronAPI as any).getFilePath = vi.fn().mockReturnValue('/path/to/file.png');
+
+        const { rerender, container } = render(<RequestEditor />);
+        fireEvent.click(screen.getByText('Body'));
+        fireEvent.click(screen.getByLabelText('Form Data'));
+        rerender(<RequestEditor />);
+
+        // Change type to file.
+        const selects = screen.getAllByRole('combobox');
+        const typeSelect = selects[1];
+        fireEvent.change(typeSelect, { target: { value: 'file' } });
+        rerender(<RequestEditor />);
+
+        expect(requestStore.bodyFormData[0].type).toBe('file');
+
+        // Trigger file selection
+        const fileInput = container.querySelector('input[type="file"]');
+        expect(fileInput).toBeInTheDocument();
+
+        const file = new File(['(⌐□_□)'], 'chucknorris.png', { type: 'image/png' });
+        await user.upload(fileInput!, file);
+
+        expect(requestStore.bodyFormData[0].src).toBe('/path/to/file.png');
+        expect(requestStore.bodyFormData[0].value).toBe('chucknorris.png');
+    });
+
+    it('should fallback to file.name if electronAPI is missing', async () => {
+        const user = userEvent.setup();
+        const originalAPI = window.electronAPI;
+        delete (window as any).electronAPI;
+
+        const { rerender, container } = render(<RequestEditor />);
+        fireEvent.click(screen.getByText('Body'));
+        fireEvent.click(screen.getByLabelText('Form Data'));
+        rerender(<RequestEditor />);
+
+        const selects = screen.getAllByRole('combobox');
+        const typeSelect = selects[1];
+        fireEvent.change(typeSelect, { target: { value: 'file' } });
+        rerender(<RequestEditor />);
+
+        const fileInput = container.querySelector('input[type="file"]');
+        const file = new File(['(⌐□_□)'], 'chucknorris.png', { type: 'image/png' });
+        await user.upload(fileInput!, file);
+
+        expect(requestStore.bodyFormData[0].src).toBe('chucknorris.png');
+
+        window.electronAPI = originalAPI;
     });
 
     it('should render input fields', () => {
