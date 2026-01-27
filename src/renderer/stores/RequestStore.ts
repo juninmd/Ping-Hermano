@@ -1,4 +1,4 @@
-import { makeAutoObservable, runInAction } from 'mobx';
+import { makeAutoObservable, runInAction, autorun } from 'mobx';
 
 export interface Header {
   key: string;
@@ -61,7 +61,10 @@ export interface Environment {
   variables: Variable[];
 }
 
-export class RequestStore {
+export class RequestTab {
+  id: string;
+  name: string = 'New Request';
+
   // Request State
   method: string = 'GET';
   url: string = '';
@@ -81,19 +84,9 @@ export class RequestStore {
   error: any = null;
   responseMetrics: { time: number; size: string } = { time: 0, size: '0 B' };
 
-  // History State
-  history: HistoryItem[] = [];
-  collections: Collection[] = [];
-
-  // Environment State
-  environments: Environment[] = [];
-  activeEnvironmentId: string | null = null;
-
-  constructor() {
-    makeAutoObservable(this, {}, { autoBind: true });
-    this.loadHistory();
-    this.loadCollections();
-    this.loadEnvironments();
+  constructor(id: string) {
+      this.id = id;
+      makeAutoObservable(this, {}, { autoBind: true });
   }
 
   setMethod(method: string) {
@@ -152,14 +145,7 @@ export class RequestStore {
     } else if (this.bodyType === 'x-www-form-urlencoded') {
         newHeaders.unshift({ key: 'Content-Type', value: 'application/x-www-form-urlencoded' });
     }
-    // For form-data, we usually let the runtime set it including boundary, but usually user expects to see it?
-    // Postman runtime handles it. If we set multipart/form-data manually, we must not set boundary manually usually.
-    // Let's leave it out for form-data so runtime sets it with boundary.
 
-    // If text, we don't force a header, or we could remove it (which we did by filtering).
-    // This allows user to manually set it if they want something else, but if they switch to JSON, we force it.
-
-    // Ensure empty row at end if needed
     if (newHeaders.length === 0 || (newHeaders[newHeaders.length - 1].key || newHeaders[newHeaders.length - 1].value)) {
        newHeaders.push({ key: '', value: '' });
     }
@@ -168,7 +154,6 @@ export class RequestStore {
   }
 
   private updateAuthHeader() {
-    // Remove existing Authorization header
     let newHeaders = this.headers.filter(h => h.key.toLowerCase() !== 'authorization');
 
     if (this.auth.type === 'basic') {
@@ -178,7 +163,6 @@ export class RequestStore {
       newHeaders.unshift({ key: 'Authorization', value: `Bearer ${this.auth.token || ''}` });
     }
 
-    // Ensure empty row at end if needed
     if (newHeaders.length === 0 || (newHeaders[newHeaders.length - 1].key || newHeaders[newHeaders.length - 1].value)) {
        newHeaders.push({ key: '', value: '' });
     }
@@ -200,22 +184,28 @@ export class RequestStore {
        return;
     }
 
-    const params = new URLSearchParams(searchPart);
-    const newParams: QueryParam[] = [];
-    params.forEach((value, key) => {
-        newParams.push({ key, value });
-    });
+    try {
+        const params = new URLSearchParams(searchPart);
+        const newParams: QueryParam[] = [];
+        params.forEach((value, key) => {
+            newParams.push({ key, value });
+        });
 
-    // Always add an empty row at the end
-    newParams.push({ key: '', value: '' });
+        newParams.push({ key: '', value: '' });
 
-    this.queryParams = newParams;
+        this.queryParams = newParams;
+    } catch (e) {
+        console.error("Failed to parse query params", e);
+        // Fallback to empty if failed
+        if (this.queryParams.length === 0) {
+             this.queryParams = [{ key: '', value: '' }];
+        }
+    }
   }
 
   private updateUrlFromParams() {
       const validParams = this.queryParams.filter(p => p.key || p.value);
 
-      // Get base URL (remove query string)
       const queryIndex = this.url.indexOf('?');
       let baseUrl = this.url;
       if (queryIndex !== -1) {
@@ -227,14 +217,203 @@ export class RequestStore {
           return;
       }
 
-      const searchParams = new URLSearchParams();
-      validParams.forEach(p => {
-          if (p.key) searchParams.append(p.key, p.value);
-      });
+      try {
+          const searchParams = new URLSearchParams();
+          validParams.forEach(p => {
+              if (p.key) searchParams.append(p.key, p.value);
+          });
 
-      const queryString = searchParams.toString();
-      this.url = `${baseUrl}?${queryString}`;
+          const queryString = searchParams.toString();
+          this.url = `${baseUrl}?${queryString}`;
+      } catch (e) {
+          console.error("Failed to update url from params", e);
+      }
   }
+}
+
+export class RequestStore {
+  // Tabs State
+  tabs: RequestTab[] = [];
+  activeTabId: string | null = null;
+
+  // History State
+  history: HistoryItem[] = [];
+  collections: Collection[] = [];
+
+  // Environment State
+  environments: Environment[] = [];
+  activeEnvironmentId: string | null = null;
+
+  constructor() {
+    makeAutoObservable(this, {}, { autoBind: true });
+    this.loadHistory();
+    this.loadCollections();
+    this.loadEnvironments();
+    this.loadTabs();
+
+    if (this.tabs.length === 0) {
+        this.addTab();
+    }
+
+    // Auto-save tabs on change
+    autorun(() => {
+        this.saveTabs();
+    });
+  }
+
+  // Tab Management
+  addTab() {
+      const id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+      const newTab = new RequestTab(id);
+      this.tabs.push(newTab);
+      this.setActiveTab(id);
+  }
+
+  closeTab(id: string) {
+      if (this.tabs.length === 1) return; // Don't close last tab
+
+      const index = this.tabs.findIndex(t => t.id === id);
+      if (index === -1) return;
+
+      this.tabs = this.tabs.filter(t => t.id !== id);
+
+      // If we closed the active tab, switch to another
+      if (this.activeTabId === id) {
+          const newIndex = index === 0 ? 0 : index - 1;
+          this.activeTabId = this.tabs[newIndex].id;
+      }
+  }
+
+  setActiveTab(id: string) {
+      this.activeTabId = id;
+  }
+
+  saveTabs() {
+      const tabsData = this.tabs.map(t => {
+          // Serialize only necessary state
+          return {
+              id: t.id,
+              name: t.name,
+              method: t.method,
+              url: t.url,
+              headers: t.headers,
+              queryParams: t.queryParams,
+              body: t.body,
+              bodyFormData: t.bodyFormData,
+              bodyUrlEncoded: t.bodyUrlEncoded,
+              bodyType: t.bodyType,
+              auth: t.auth,
+              preRequestScript: t.preRequestScript,
+              testScript: t.testScript
+              // Don't save response or loading state usually
+          };
+      });
+      localStorage.setItem('requestTabs', JSON.stringify(tabsData));
+      if (this.activeTabId) {
+          localStorage.setItem('activeTabId', this.activeTabId);
+      }
+  }
+
+  loadTabs() {
+      const savedTabs = localStorage.getItem('requestTabs');
+      if (savedTabs) {
+          try {
+              const parsed = JSON.parse(savedTabs);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                  this.tabs = parsed.map((t: any) => {
+                      const tab = new RequestTab(t.id);
+                      // Restore state
+                      if (t.method) tab.setMethod(t.method);
+                      if (t.url) tab.setUrl(t.url);
+                      if (t.headers) tab.setHeaders(t.headers);
+                      if (t.queryParams) tab.setQueryParams(t.queryParams);
+                      if (t.body) tab.setBody(t.body);
+                      if (t.bodyFormData) tab.setBodyFormData(t.bodyFormData);
+                      if (t.bodyUrlEncoded) tab.setBodyUrlEncoded(t.bodyUrlEncoded);
+                      if (t.bodyType) tab.setBodyType(t.bodyType);
+                      if (t.auth) tab.setAuth(t.auth);
+                      if (t.preRequestScript) tab.setPreRequestScript(t.preRequestScript);
+                      if (t.testScript) tab.setTestScript(t.testScript);
+                      tab.name = t.name || 'New Request';
+                      return tab;
+                  });
+              }
+          } catch (e) {
+              console.error("Failed to load tabs", e);
+          }
+      }
+
+      const savedActiveId = localStorage.getItem('activeTabId');
+      if (savedActiveId && this.tabs.find(t => t.id === savedActiveId)) {
+          this.activeTabId = savedActiveId;
+      } else if (this.tabs.length > 0) {
+          this.activeTabId = this.tabs[0].id;
+      }
+  }
+
+  get activeTab(): RequestTab {
+      return this.tabs.find(t => t.id === this.activeTabId) || this.tabs[0];
+  }
+
+  // Proxies for backward compatibility and ease of use in components
+  get method() { return this.activeTab.method; }
+  set method(val: string) { this.activeTab.setMethod(val); }
+
+  get url() { return this.activeTab.url; }
+  set url(val: string) { this.activeTab.setUrl(val); }
+
+  get headers() { return this.activeTab.headers; }
+  set headers(val: Header[]) { this.activeTab.setHeaders(val); }
+
+  get queryParams() { return this.activeTab.queryParams; }
+  set queryParams(val: QueryParam[]) { this.activeTab.setQueryParams(val); }
+
+  get body() { return this.activeTab.body; }
+  set body(val: string) { this.activeTab.setBody(val); }
+
+  get bodyFormData() { return this.activeTab.bodyFormData; }
+  set bodyFormData(val: BodyItem[]) { this.activeTab.setBodyFormData(val); }
+
+  get bodyUrlEncoded() { return this.activeTab.bodyUrlEncoded; }
+  set bodyUrlEncoded(val: BodyItem[]) { this.activeTab.setBodyUrlEncoded(val); }
+
+  get bodyType() { return this.activeTab.bodyType; }
+  set bodyType(val: BodyType) { this.activeTab.setBodyType(val); }
+
+  get auth() { return this.activeTab.auth; }
+  set auth(val: Auth) { this.activeTab.setAuth(val); }
+
+  get preRequestScript() { return this.activeTab.preRequestScript; }
+  set preRequestScript(val: string) { this.activeTab.setPreRequestScript(val); }
+
+  get testScript() { return this.activeTab.testScript; }
+  set testScript(val: string) { this.activeTab.setTestScript(val); }
+
+  get response() { return this.activeTab.response; }
+  // Response is usually read-only from outside, but tests might set it
+  set response(val: any) { runInAction(() => { this.activeTab.response = val; }); }
+
+  get loading() { return this.activeTab.loading; }
+  set loading(val: boolean) { runInAction(() => { this.activeTab.loading = val; }); }
+
+  get error() { return this.activeTab.error; }
+  set error(val: any) { runInAction(() => { this.activeTab.error = val; }); }
+
+  get responseMetrics() { return this.activeTab.responseMetrics; }
+  set responseMetrics(val: { time: number; size: string }) { runInAction(() => { this.activeTab.responseMetrics = val; }); }
+
+  // Keep explicit setters for components that might use them (or if I want to deprecate them later)
+  setMethod(val: string) { this.method = val; }
+  setUrl(val: string) { this.url = val; }
+  setHeaders(val: Header[]) { this.headers = val; }
+  setQueryParams(val: QueryParam[]) { this.queryParams = val; }
+  setBody(val: string) { this.body = val; }
+  setBodyFormData(val: BodyItem[]) { this.bodyFormData = val; }
+  setBodyUrlEncoded(val: BodyItem[]) { this.bodyUrlEncoded = val; }
+  setBodyType(val: BodyType) { this.bodyType = val; }
+  setPreRequestScript(val: string) { this.preRequestScript = val; }
+  setTestScript(val: string) { this.testScript = val; }
+  setAuth(val: Auth) { this.auth = val; }
 
   loadHistory() {
     const savedHistory = localStorage.getItem('requestHistory');
@@ -451,50 +630,55 @@ export class RequestStore {
   }
 
   loadHistoryItem(item: HistoryItem) {
-    this.method = item.method;
+    // When loading history, update the ACTIVE tab
+    this.setMethod(item.method);
     this.setUrl(item.url);
 
     if (item.headers && item.headers.length > 0) {
-      this.headers = [...item.headers, { key: '', value: '' }];
+      this.setHeaders([...item.headers, { key: '', value: '' }]);
     } else {
-      this.headers = [{ key: '', value: '' }];
+      this.setHeaders([{ key: '', value: '' }]);
     }
 
-    this.body = item.body || '';
-    this.bodyType = item.bodyType || 'text';
-    this.bodyFormData = item.bodyFormData || [{ key: '', value: '', type: 'text' }];
-    this.bodyUrlEncoded = item.bodyUrlEncoded || [{ key: '', value: '' }];
-    this.auth = item.auth || { type: 'none' };
-    this.preRequestScript = item.preRequestScript || '';
-    this.testScript = item.testScript || '';
+    this.setBody(item.body || '');
+    this.setBodyType(item.bodyType || 'text');
+    this.setBodyFormData(item.bodyFormData || [{ key: '', value: '', type: 'text' }]);
+    this.setBodyUrlEncoded(item.bodyUrlEncoded || [{ key: '', value: '' }]);
+    this.setAuth(item.auth || { type: 'none' });
+    this.setPreRequestScript(item.preRequestScript || '');
+    this.setTestScript(item.testScript || '');
   }
 
   async sendRequest() {
-    if (!this.url) {
+    const tab = this.activeTab;
+
+    if (!tab.url) {
       alert('Please enter a URL');
       return;
     }
 
-    this.loading = true;
-    this.response = null;
-    this.error = null;
-    this.responseMetrics = { time: 0, size: '0 B' };
+    runInAction(() => {
+        tab.loading = true;
+        tab.response = null;
+        tab.error = null;
+        tab.responseMetrics = { time: 0, size: '0 B' };
+    });
 
     this.addToHistory();
 
     const startTime = performance.now();
 
     try {
-      let finalUrl = this.url;
-      const validHeaders = this.headers.filter(h => h.key.trim() !== '');
+      let finalUrl = tab.url;
+      const validHeaders = tab.headers.filter(h => h.key.trim() !== '');
 
       // Handle API Key
-      if (this.auth.type === 'apikey' && this.auth.apiKey) {
-          if (this.auth.apiKey.addTo === 'header') {
-              validHeaders.push({ key: this.auth.apiKey.key, value: this.auth.apiKey.value });
-          } else if (this.auth.apiKey.addTo === 'query') {
+      if (tab.auth.type === 'apikey' && tab.auth.apiKey) {
+          if (tab.auth.apiKey.addTo === 'header') {
+              validHeaders.push({ key: tab.auth.apiKey.key, value: tab.auth.apiKey.value });
+          } else if (tab.auth.apiKey.addTo === 'query') {
               const separator = finalUrl.includes('?') ? '&' : '?';
-              finalUrl = `${finalUrl}${separator}${this.auth.apiKey.key}=${encodeURIComponent(this.auth.apiKey.value)}`;
+              finalUrl = `${finalUrl}${separator}${tab.auth.apiKey.key}=${encodeURIComponent(tab.auth.apiKey.value)}`;
           }
       }
 
@@ -512,14 +696,14 @@ export class RequestStore {
 
       const result = await window.electronAPI.makeRequest({
         url: finalUrl,
-        method: this.method,
+        method: tab.method,
         headers: validHeaders,
-        body: this.body,
-        bodyFormData: this.bodyFormData.filter(i => i.key),
-        bodyUrlEncoded: this.bodyUrlEncoded.filter(i => i.key),
-        bodyType: this.bodyType,
-        preRequestScript: this.preRequestScript,
-        testScript: this.testScript,
+        body: tab.body,
+        bodyFormData: tab.bodyFormData.filter(i => i.key),
+        bodyUrlEncoded: tab.bodyUrlEncoded.filter(i => i.key),
+        bodyType: tab.bodyType,
+        preRequestScript: tab.preRequestScript,
+        testScript: tab.testScript,
         environment: environmentVariables
       });
 
@@ -537,9 +721,9 @@ export class RequestStore {
       if (sizeBytes > 1024 * 1024) sizeStr = `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`;
 
       runInAction(() => {
-        this.response = result;
-        this.loading = false;
-        this.responseMetrics = {
+        tab.response = result;
+        tab.loading = false;
+        tab.responseMetrics = {
             time: duration,
             size: sizeStr
         };
@@ -547,13 +731,13 @@ export class RequestStore {
     } catch (err: any) {
       console.error(err);
       runInAction(() => {
-        this.response = {
+        tab.response = {
           status: 0,
           statusText: 'Error',
           data: err.message,
           headers: {}
         };
-        this.loading = false;
+        tab.loading = false;
       });
     }
   }
