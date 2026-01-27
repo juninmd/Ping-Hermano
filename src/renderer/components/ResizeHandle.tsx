@@ -32,6 +32,7 @@ export const ResizeHandle: React.FC<ResizeHandleProps> = ({ onMouseDown, directi
     <Handle
         onMouseDown={onMouseDown}
         $direction={direction}
+        data-testid={`resize-handle-${direction}`}
     />
   );
 };

@@ -82,4 +82,64 @@ describe('App Integration', () => {
              expect(requestStore.response).not.toBeNull();
         });
     });
+
+    it('should resize sidebar', async () => {
+        vi.clearAllMocks(); // Clear initial calls
+        render(<App />);
+        const handle = screen.getByTestId('resize-handle-horizontal');
+
+        fireEvent.mouseDown(handle, { clientX: 300 });
+        fireEvent.mouseMove(window, { clientX: 400 });
+        fireEvent.mouseUp(window);
+
+        // We can verify localStorage was called to save 'sidebarWidth'
+        await waitFor(() => {
+            expect(window.localStorage.setItem).toHaveBeenCalledWith('sidebarWidth', '400');
+        });
+    });
+
+    it('should resize response panel', async () => {
+        vi.clearAllMocks();
+        render(<App />);
+        const handle = screen.getByTestId('resize-handle-vertical');
+
+        // Initial height 300. Dragging UP (clientY decreases), diff is positive, height increases.
+        // startY = 500, moveY = 400. diff = 100. newHeight = 300 + 100 = 400.
+
+        fireEvent.mouseDown(handle, { clientY: 500 });
+        fireEvent.mouseMove(window, { clientY: 400 });
+        fireEvent.mouseUp(window);
+
+        await waitFor(() => {
+            expect(window.localStorage.setItem).toHaveBeenCalledWith('responseHeight', '400');
+        });
+    });
+
+    it('should load saved layout from localStorage', async () => {
+        (window.localStorage.getItem as any).mockImplementation((key: string) => {
+            if (key === 'sidebarWidth') return '500';
+            if (key === 'responseHeight') return '600';
+            return null;
+        });
+        vi.clearAllMocks();
+
+        render(<App />);
+
+        // Wait for initial load effect to apply and persist back the loaded value (since effect runs on change)
+        // This ensures sidebarWidth is updated to 500 before we interact
+        await waitFor(() => {
+            expect(window.localStorage.setItem).toHaveBeenCalledWith('sidebarWidth', '500');
+        });
+
+        const handle = screen.getByTestId('resize-handle-horizontal');
+
+        // Now interaction should use the updated width (500) as start
+        fireEvent.mouseDown(handle, { clientX: 500 });
+        fireEvent.mouseMove(window, { clientX: 510 });
+        fireEvent.mouseUp(window);
+
+        await waitFor(() => {
+            expect(window.localStorage.setItem).toHaveBeenCalledWith('sidebarWidth', '510');
+        });
+    });
 });

@@ -81,6 +81,23 @@ const CloseButton = styled.div`
   }
 `;
 
+const DuplicateButton = styled.div`
+  margin-left: 5px;
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  opacity: 0.7;
+
+  &:hover {
+    background-color: #4b4b4b;
+    opacity: 1;
+  }
+`;
+
 const AddButton = styled.div`
   width: 35px;
   height: 35px;
@@ -98,7 +115,7 @@ const AddButton = styled.div`
 `;
 
 export const TabList = observer(() => {
-  const { tabs, activeTabId, setActiveTab, closeTab, addTab } = requestStore;
+  const { tabs, activeTabId, setActiveTab, closeTab, addTab, duplicateTab } = requestStore;
 
   return (
     <TabsContainer>
@@ -111,6 +128,12 @@ export const TabList = observer(() => {
             title={tab.url || 'New Request'}
         >
           <TabLabel>{tab.name === 'New Request' && tab.url ? tab.url.split('?')[0].split('/').pop() || tab.url : tab.name}</TabLabel>
+          <DuplicateButton onClick={(e) => {
+              e.stopPropagation();
+              duplicateTab(tab.id);
+          }} title="Duplicate Tab">
+            ❐
+          </DuplicateButton>
           <CloseButton onClick={(e) => {
               e.stopPropagation();
               closeTab(tab.id);

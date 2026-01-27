@@ -415,6 +415,58 @@ export class RequestStore {
   setTestScript(val: string) { this.testScript = val; }
   setAuth(val: Auth) { this.auth = val; }
 
+  duplicateTab(id: string) {
+    const originalTab = this.tabs.find(t => t.id === id);
+    if (!originalTab) return;
+
+    const newId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+    const newTab = new RequestTab(newId);
+
+    // Copy state
+    newTab.setMethod(originalTab.method);
+    newTab.setUrl(originalTab.url);
+    // Deep copy arrays where necessary
+    newTab.setHeaders(originalTab.headers.map(h => ({ ...h })));
+    newTab.setQueryParams(originalTab.queryParams.map(q => ({ ...q })));
+    newTab.setBody(originalTab.body);
+    newTab.setBodyFormData(originalTab.bodyFormData.map(b => ({ ...b })));
+    newTab.setBodyUrlEncoded(originalTab.bodyUrlEncoded.map(b => ({ ...b })));
+    newTab.setBodyType(originalTab.bodyType);
+
+    // Auth deep copy
+    const newAuth = { ...originalTab.auth };
+    if (originalTab.auth.apiKey) {
+        newAuth.apiKey = { ...originalTab.auth.apiKey };
+    }
+    newTab.setAuth(newAuth);
+
+    newTab.setPreRequestScript(originalTab.preRequestScript);
+    newTab.setTestScript(originalTab.testScript);
+    newTab.name = originalTab.name;
+
+    this.tabs.push(newTab);
+    this.setActiveTab(newId);
+  }
+
+  renameCollection(id: string, newName: string) {
+      const collection = this.collections.find(c => c.id === id);
+      if (collection) {
+          collection.name = newName;
+          this.saveCollections();
+      }
+  }
+
+  renameRequestInCollection(collectionId: string, requestId: string, newName: string) {
+      const collection = this.collections.find(c => c.id === collectionId);
+      if (collection) {
+          const request = collection.requests.find(r => r.id === requestId);
+          if (request) {
+              request.name = newName;
+              this.saveCollections();
+          }
+      }
+  }
+
   loadHistory() {
     const savedHistory = localStorage.getItem('requestHistory');
     if (savedHistory) {

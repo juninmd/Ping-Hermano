@@ -173,6 +173,64 @@ describe('Sidebar', () => {
             fireEvent.click(screen.getByText('Req1'));
             expect(requestStore.url).toBe('http://test.com');
         });
+
+        it('should rename collection', () => {
+             runInAction(() => {
+                requestStore.collections = [
+                    { id: '1', name: 'Old Name', requests: [] }
+                ];
+            });
+            (global.prompt as any).mockReturnValue('New Name');
+            renderCollections();
+            const renameBtn = screen.getByTitle('Rename Collection');
+            fireEvent.click(renameBtn);
+
+            expect(global.prompt).toHaveBeenCalledWith("Rename collection:", "Old Name");
+            expect(requestStore.collections[0].name).toBe('New Name');
+        });
+
+        it('should not rename collection if prompt cancelled', () => {
+             runInAction(() => {
+                requestStore.collections = [
+                    { id: '1', name: 'Old Name', requests: [] }
+                ];
+            });
+            (global.prompt as any).mockReturnValue(null);
+            renderCollections();
+            const renameBtn = screen.getByTitle('Rename Collection');
+            fireEvent.click(renameBtn);
+
+            expect(requestStore.collections[0].name).toBe('Old Name');
+        });
+
+        it('should rename request in collection', () => {
+             runInAction(() => {
+                requestStore.collections = [
+                    { id: '1', name: 'Col1', requests: [{ id: 'r1', name: 'Old Req', method: 'GET', url: '', date: '' }] }
+                ];
+            });
+            (global.prompt as any).mockReturnValue('New Req');
+            renderCollections();
+            const renameBtn = screen.getByTitle('Rename Request');
+            fireEvent.click(renameBtn);
+
+            expect(global.prompt).toHaveBeenCalledWith("Rename request:", "Old Req");
+            expect(requestStore.collections[0].requests[0].name).toBe('New Req');
+        });
+
+         it('should not rename request in collection if prompt cancelled', () => {
+             runInAction(() => {
+                requestStore.collections = [
+                    { id: '1', name: 'Col1', requests: [{ id: 'r1', name: 'Old Req', method: 'GET', url: '', date: '' }] }
+                ];
+            });
+            (global.prompt as any).mockReturnValue(null);
+            renderCollections();
+            const renameBtn = screen.getByTitle('Rename Request');
+            fireEvent.click(renameBtn);
+
+            expect(requestStore.collections[0].requests[0].name).toBe('Old Req');
+        });
     });
 
     describe('Environments', () => {
