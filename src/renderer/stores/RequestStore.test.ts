@@ -700,4 +700,77 @@ describe('RequestStore', () => {
           consoleSpy.mockRestore();
       });
   });
+
+  describe('Duplicate and Rename', () => {
+    it('should duplicate tab', () => {
+        store.setUrl('http://dup.com');
+        store.setMethod('POST');
+        const id = store.activeTabId!;
+        store.duplicateTab(id);
+
+        expect(store.tabs).toHaveLength(2);
+        // New tab should be active
+        expect(store.activeTabId).not.toBe(id);
+        expect(store.method).toBe('POST');
+        expect(store.url).toBe('http://dup.com');
+    });
+
+    it('should not duplicate non-existent tab', () => {
+        store.duplicateTab('invalid');
+        expect(store.tabs).toHaveLength(1);
+    });
+
+    it('should rename collection', () => {
+        store.createCollection('Old Name');
+        const id = store.collections[0].id;
+        store.renameCollection(id, 'New Name');
+        expect(store.collections[0].name).toBe('New Name');
+    });
+
+    it('should not rename non-existent collection', () => {
+        store.renameCollection('invalid', 'New Name');
+        expect(store.collections).toHaveLength(0);
+    });
+
+    it('should rename request in collection', () => {
+        store.createCollection('Col');
+        const colId = store.collections[0].id;
+        store.saveRequestToCollection(colId, 'Req Old');
+        const reqId = store.collections[0].requests[0].id;
+
+        store.renameRequestInCollection(colId, reqId, 'Req New');
+        expect(store.collections[0].requests[0].name).toBe('Req New');
+    });
+
+    it('should not rename request in non-existent collection', () => {
+        store.renameRequestInCollection('invalid', 'id', 'Name');
+        expect(store.collections).toHaveLength(0);
+    });
+
+    it('should not rename non-existent request', () => {
+        store.createCollection('Col');
+        const colId = store.collections[0].id;
+        store.renameRequestInCollection(colId, 'invalid', 'Name');
+        expect(store.collections[0].requests).toHaveLength(0);
+    });
+  });
+
+  describe('Tab Loading Errors', () => {
+      it('should handle invalid JSON in loadTabs', () => {
+           localStorage.setItem('requestTabs', 'invalid');
+           const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+           store = new RequestStore();
+           expect(store.tabs).toHaveLength(1); // Default new tab
+           consoleSpy.mockRestore();
+      });
+
+      it('should handle savedActiveId logic', () => {
+          // Case where active ID is saved but tab doesn't exist
+           localStorage.setItem('requestTabs', JSON.stringify([]));
+           localStorage.setItem('activeTabId', 'missing');
+           store = new RequestStore();
+           expect(store.tabs).toHaveLength(1); // Created default
+           expect(store.activeTabId).toBe(store.tabs[0].id);
+      });
+  });
 });

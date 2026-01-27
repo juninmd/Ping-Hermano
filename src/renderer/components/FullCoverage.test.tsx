@@ -519,8 +519,12 @@ describe('Full Coverage Tests', () => {
             fireEvent.click(screen.getByText('Collections'));
 
             const collectionHeader = screen.getByText(/Col1/).closest('div');
-            const deleteBtn = collectionHeader?.querySelector('button');
-            fireEvent.click(deleteBtn!);
+            // We use querySelector to find button with title, as closest('div') returns the header container
+            // which now has nested divs. The logic might need to be robust.
+            // Using getAllByTitle('Delete Collection') might be safer if unique, but we have multiple collections?
+            // Here we have only 1.
+            const deleteBtn = screen.getByTitle('Delete Collection');
+            fireEvent.click(deleteBtn);
 
             expect(requestStore.collections).toHaveLength(0);
         });

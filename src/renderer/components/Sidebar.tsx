@@ -159,6 +159,8 @@ export const Sidebar = observer(() => {
     createCollection,
     deleteCollection,
     deleteRequestFromCollection,
+    renameCollection,
+    renameRequestInCollection,
     environments,
     createEnvironment,
     deleteEnvironment,
@@ -317,10 +319,17 @@ export const Sidebar = observer(() => {
                  <CollectionItem key={col.id}>
                    <CollectionHeader>
                       <span>{col.name} ({col.requests.length})</span>
-                      <ActionBtn onClick={(e) => {
-                        e.stopPropagation();
-                        if(confirm(`Delete collection ${col.name}?`)) deleteCollection(col.id);
-                      }}>🗑️</ActionBtn>
+                      <div>
+                        <ActionBtn onClick={(e) => {
+                            e.stopPropagation();
+                            const newName = prompt("Rename collection:", col.name);
+                            if(newName) renameCollection(col.id, newName);
+                        }} title="Rename Collection">✏️</ActionBtn>
+                        <ActionBtn onClick={(e) => {
+                            e.stopPropagation();
+                            if(confirm(`Delete collection ${col.name}?`)) deleteCollection(col.id);
+                        }} title="Delete Collection">🗑️</ActionBtn>
+                      </div>
                    </CollectionHeader>
                    {col.requests.map(req => (
                       <RequestInCollection
@@ -330,9 +339,14 @@ export const Sidebar = observer(() => {
                          <MethodBadge method={req.method}>{req.method}</MethodBadge>
                          <TextTruncate title={req.name || req.url}>{req.name || req.url}</TextTruncate>
                          <ActionBtn onClick={(e) => {
+                            e.stopPropagation();
+                            const newName = prompt("Rename request:", req.name || 'New Request');
+                            if(newName) renameRequestInCollection(col.id, req.id, newName);
+                         }} style={{ fontSize: '12px', opacity: 0.4, marginRight: 5 }} title="Rename Request">✏️</ActionBtn>
+                         <ActionBtn onClick={(e) => {
                            e.stopPropagation();
                            deleteRequestFromCollection(col.id, req.id);
-                         }} style={{ fontSize: '12px', opacity: 0.4 }}>✕</ActionBtn>
+                         }} style={{ fontSize: '12px', opacity: 0.4 }} title="Delete Request">✕</ActionBtn>
                       </RequestInCollection>
                    ))}
                  </CollectionItem>
