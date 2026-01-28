@@ -78,37 +78,44 @@ const ResponseWrapper = styled.div<{ height: number }>`
 function App() {
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const [responseHeight, setResponseHeight] = useState(300);
+
   const isResizing = useRef(false);
+  const sidebarWidthRef = useRef(300);
+  const responseHeightRef = useRef(300);
 
   // Load saved layout
   useEffect(() => {
       const savedWidth = localStorage.getItem('sidebarWidth');
-      if (savedWidth) setSidebarWidth(parseInt(savedWidth));
+      if (savedWidth) {
+        const w = parseInt(savedWidth);
+        setSidebarWidth(w);
+        sidebarWidthRef.current = w;
+      }
       const savedHeight = localStorage.getItem('responseHeight');
-      if (savedHeight) setResponseHeight(parseInt(savedHeight));
+      if (savedHeight) {
+        const h = parseInt(savedHeight);
+        setResponseHeight(h);
+        responseHeightRef.current = h;
+      }
   }, []);
 
   const startResizeSidebar = (e: React.MouseEvent) => {
     isResizing.current = true;
     const startX = e.clientX;
-    const startWidth = sidebarWidth;
+    const startWidth = sidebarWidthRef.current;
 
     const onMouseMove = (moveEvent: MouseEvent) => {
       if (!isResizing.current) return;
       const newWidth = Math.max(200, Math.min(600, startWidth + (moveEvent.clientX - startX)));
       setSidebarWidth(newWidth);
+      sidebarWidthRef.current = newWidth;
     };
 
     const onMouseUp = () => {
       isResizing.current = false;
-      localStorage.setItem('sidebarWidth', sidebarWidth.toString()); // Note: this uses closure value? No, need ref or latest state. But simpler to save on up.
-      // Actually closure captures startWidth. `sidebarWidth` state isn't updated in this closure unless we use ref.
-      // But we set state. The next render updates.
-      // To save to localstorage correctly, let's just save on every set or use an effect.
-      // Optimization: Save on mouseup.
+      localStorage.setItem('sidebarWidth', sidebarWidthRef.current.toString());
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
-      // We can't easily access the final width here due to closure, so let's rely on useEffect or a ref for the value.
     };
 
     window.addEventListener('mousemove', onMouseMove);
@@ -118,20 +125,19 @@ function App() {
   const startResizeResponse = (e: React.MouseEvent) => {
     isResizing.current = true;
     const startY = e.clientY;
-    const startHeight = responseHeight;
+    const startHeight = responseHeightRef.current;
 
     const onMouseMove = (moveEvent: MouseEvent) => {
       if (!isResizing.current) return;
-      // Dragging down decreases height (since it's at bottom)? No, handle is top of response.
-      // Dragging down -> y increases -> height decreases.
-      // Dragging up -> y decreases -> height increases.
       const diff = startY - moveEvent.clientY;
       const newHeight = Math.max(100, Math.min(800, startHeight + diff));
       setResponseHeight(newHeight);
+      responseHeightRef.current = newHeight;
     };
 
     const onMouseUp = () => {
       isResizing.current = false;
+      localStorage.setItem('responseHeight', responseHeightRef.current.toString());
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
     };
@@ -139,20 +145,6 @@ function App() {
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
   };
-
-  // Persist layout when changed (debounced via effect could work, but simple effect is fine)
-  useEffect(() => {
-      if (!isResizing.current) {
-          localStorage.setItem('sidebarWidth', sidebarWidth.toString());
-      }
-  }, [sidebarWidth]);
-
-  useEffect(() => {
-      if (!isResizing.current) {
-          localStorage.setItem('responseHeight', responseHeight.toString());
-      }
-  }, [responseHeight]);
-
 
   return (
     <>
