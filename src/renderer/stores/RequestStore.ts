@@ -523,7 +523,7 @@ export class RequestStore {
 
   createEnvironment(name: string) {
     const newEnv: Environment = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+      id: crypto.randomUUID(),
       name,
       variables: [{ key: '', value: '', enabled: true }]
     };
