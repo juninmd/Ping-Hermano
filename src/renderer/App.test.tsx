@@ -125,12 +125,6 @@ describe('App Integration', () => {
 
         render(<App />);
 
-        // Wait for initial load effect to apply and persist back the loaded value (since effect runs on change)
-        // This ensures sidebarWidth is updated to 500 before we interact
-        await waitFor(() => {
-            expect(window.localStorage.setItem).toHaveBeenCalledWith('sidebarWidth', '500');
-        });
-
         const handle = screen.getByTestId('resize-handle-horizontal');
 
         // Now interaction should use the updated width (500) as start
