@@ -80,8 +80,8 @@ function App() {
   const [responseHeight, setResponseHeight] = useState(300);
 
   const isResizing = useRef(false);
-  const sidebarWidthRef = useRef(300);
-  const responseHeightRef = useRef(300);
+  const sidebarWidthRef = useRef(sidebarWidth);
+  const responseHeightRef = useRef(responseHeight);
 
   // Load saved layout
   useEffect(() => {
@@ -99,13 +99,20 @@ function App() {
       }
   }, []);
 
+  useEffect(() => {
+    sidebarWidthRef.current = sidebarWidth;
+  }, [sidebarWidth]);
+
+  useEffect(() => {
+    responseHeightRef.current = responseHeight;
+  }, [responseHeight]);
+
   const startResizeSidebar = (e: React.MouseEvent) => {
     isResizing.current = true;
     const startX = e.clientX;
     const startWidth = sidebarWidthRef.current;
 
     const onMouseMove = (moveEvent: MouseEvent) => {
-      if (!isResizing.current) return;
       const newWidth = Math.max(200, Math.min(600, startWidth + (moveEvent.clientX - startX)));
       setSidebarWidth(newWidth);
       sidebarWidthRef.current = newWidth;
@@ -128,7 +135,9 @@ function App() {
     const startHeight = responseHeightRef.current;
 
     const onMouseMove = (moveEvent: MouseEvent) => {
-      if (!isResizing.current) return;
+      // Dragging down decreases height (since it's at bottom)? No, handle is top of response.
+      // Dragging down -> y increases -> height decreases.
+      // Dragging up -> y decreases -> height increases.
       const diff = startY - moveEvent.clientY;
       const newHeight = Math.max(100, Math.min(800, startHeight + diff));
       setResponseHeight(newHeight);

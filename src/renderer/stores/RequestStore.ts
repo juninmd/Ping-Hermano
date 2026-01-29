@@ -523,7 +523,7 @@ export class RequestStore {
 
   createEnvironment(name: string) {
     const newEnv: Environment = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+      id: crypto.randomUUID(),
       name,
       variables: [{ key: '', value: '', enabled: true }]
     };
@@ -623,7 +623,7 @@ export class RequestStore {
   saveRequestToCollection(collectionId: string, name: string) {
       const validHeaders = this.headers.filter(h => h.key.trim() !== '' || h.value.trim() !== '');
       const newRequest: HistoryItem = {
-          id: Date.now().toString(),
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
           name: name,
           method: this.method,
           url: this.url,
@@ -657,7 +657,7 @@ export class RequestStore {
     const validHeaders = this.headers.filter(h => h.key.trim() !== '' || h.value.trim() !== '');
 
     const newHistoryItem: HistoryItem = {
-      id: Date.now().toString(),
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
       method: this.method,
       url: this.url,
       headers: validHeaders,
