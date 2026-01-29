@@ -78,6 +78,7 @@ const ResponseWrapper = styled.div<{ height: number }>`
 function App() {
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const [responseHeight, setResponseHeight] = useState(300);
+
   const isResizing = useRef(false);
   const sidebarWidthRef = useRef(sidebarWidth);
   const responseHeightRef = useRef(responseHeight);
@@ -85,9 +86,17 @@ function App() {
   // Load saved layout
   useEffect(() => {
       const savedWidth = localStorage.getItem('sidebarWidth');
-      if (savedWidth) setSidebarWidth(parseInt(savedWidth));
+      if (savedWidth) {
+        const w = parseInt(savedWidth);
+        setSidebarWidth(w);
+        sidebarWidthRef.current = w;
+      }
       const savedHeight = localStorage.getItem('responseHeight');
-      if (savedHeight) setResponseHeight(parseInt(savedHeight));
+      if (savedHeight) {
+        const h = parseInt(savedHeight);
+        setResponseHeight(h);
+        responseHeightRef.current = h;
+      }
   }, []);
 
   useEffect(() => {
@@ -101,11 +110,12 @@ function App() {
   const startResizeSidebar = (e: React.MouseEvent) => {
     isResizing.current = true;
     const startX = e.clientX;
-    const startWidth = sidebarWidth;
+    const startWidth = sidebarWidthRef.current;
 
     const onMouseMove = (moveEvent: MouseEvent) => {
       const newWidth = Math.max(200, Math.min(600, startWidth + (moveEvent.clientX - startX)));
       setSidebarWidth(newWidth);
+      sidebarWidthRef.current = newWidth;
     };
 
     const onMouseUp = () => {
@@ -122,7 +132,7 @@ function App() {
   const startResizeResponse = (e: React.MouseEvent) => {
     isResizing.current = true;
     const startY = e.clientY;
-    const startHeight = responseHeight;
+    const startHeight = responseHeightRef.current;
 
     const onMouseMove = (moveEvent: MouseEvent) => {
       // Dragging down decreases height (since it's at bottom)? No, handle is top of response.
@@ -131,6 +141,7 @@ function App() {
       const diff = startY - moveEvent.clientY;
       const newHeight = Math.max(100, Math.min(800, startHeight + diff));
       setResponseHeight(newHeight);
+      responseHeightRef.current = newHeight;
     };
 
     const onMouseUp = () => {
@@ -143,20 +154,6 @@ function App() {
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
   };
-
-  // Persist layout when changed (debounced via effect could work, but simple effect is fine)
-  useEffect(() => {
-      if (!isResizing.current) {
-          localStorage.setItem('sidebarWidth', sidebarWidth.toString());
-      }
-  }, [sidebarWidth]);
-
-  useEffect(() => {
-      if (!isResizing.current) {
-          localStorage.setItem('responseHeight', responseHeight.toString());
-      }
-  }, [responseHeight]);
-
 
   return (
     <>
