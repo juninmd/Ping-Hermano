@@ -1,17 +1,9 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CodeSnippetModal } from './CodeSnippetModal';
 import { requestStore } from '../stores/RequestStore';
-
-// Mock mobx-react-lite
-vi.mock('mobx-react-lite', async (importOriginal) => {
-    const actual = await importOriginal();
-    return {
-        ...(actual as object),
-        observer: (component: any) => component,
-    };
-});
+import { runInAction } from 'mobx';
 
 // Mock clipboard
 Object.assign(navigator, {
@@ -23,16 +15,20 @@ Object.assign(navigator, {
 describe('CodeSnippetModal Coverage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        requestStore.tabs = [];
-        requestStore.addTab();
-        requestStore.url = 'https://api.example.com';
-        requestStore.method = 'GET';
-        requestStore.headers = [];
-        requestStore.auth = { type: 'none' };
+        runInAction(() => {
+            requestStore.tabs = [];
+            requestStore.addTab();
+            requestStore.url = 'https://api.example.com';
+            requestStore.method = 'GET';
+            requestStore.headers = [];
+            requestStore.auth = { type: 'none' };
+        });
     });
 
     it('should generate code with Bearer Token', () => {
-        requestStore.auth = { type: 'bearer', token: 'my-token' };
+        runInAction(() => {
+            requestStore.auth = { type: 'bearer', token: 'my-token' };
+        });
         render(<CodeSnippetModal onClose={() => {}} />);
 
         const codeArea = screen.getByRole('textbox') as HTMLTextAreaElement;
@@ -40,7 +36,9 @@ describe('CodeSnippetModal Coverage', () => {
     });
 
     it('should generate code with API Key in Header', () => {
-        requestStore.auth = { type: 'apikey', apiKey: { key: 'X-API-KEY', value: '12345', addTo: 'header' } };
+        runInAction(() => {
+            requestStore.auth = { type: 'apikey', apiKey: { key: 'X-API-KEY', value: '12345', addTo: 'header' } };
+        });
         render(<CodeSnippetModal onClose={() => {}} />);
 
         const codeArea = screen.getByRole('textbox') as HTMLTextAreaElement;
@@ -48,7 +46,9 @@ describe('CodeSnippetModal Coverage', () => {
     });
 
     it('should generate code with API Key in Query', () => {
-        requestStore.auth = { type: 'apikey', apiKey: { key: 'api_key', value: 'secret', addTo: 'query' } };
+        runInAction(() => {
+            requestStore.auth = { type: 'apikey', apiKey: { key: 'api_key', value: 'secret', addTo: 'query' } };
+        });
         render(<CodeSnippetModal onClose={() => {}} />);
 
         const codeArea = screen.getByRole('textbox') as HTMLTextAreaElement;
@@ -56,8 +56,10 @@ describe('CodeSnippetModal Coverage', () => {
     });
 
     it('should generate code with API Key in Query appending to existing params', () => {
-        requestStore.url = 'https://api.example.com?existing=true';
-        requestStore.auth = { type: 'apikey', apiKey: { key: 'api_key', value: 'secret', addTo: 'query' } };
+        runInAction(() => {
+            requestStore.url = 'https://api.example.com?existing=true';
+            requestStore.auth = { type: 'apikey', apiKey: { key: 'api_key', value: 'secret', addTo: 'query' } };
+        });
         render(<CodeSnippetModal onClose={() => {}} />);
 
         const codeArea = screen.getByRole('textbox') as HTMLTextAreaElement;

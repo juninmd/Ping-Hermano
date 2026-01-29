@@ -171,11 +171,11 @@ export const ResponseViewer = observer(() => {
     );
   }
 
-  const data = response ? response.data : null;
-  const status = response ? response.status : 0;
-  const statusText = response ? response.statusText : '';
-  const headers = response ? response.headers : {};
-  const testResults = response ? (response.testResults || []) : [];
+  const data = response.data;
+  const status = response.status;
+  const statusText = response.statusText;
+  const headers = response.headers;
+  const testResults = response.testResults || [];
   const passedCount = testResults.filter((t: any) => t.passed).length;
   const totalTests = testResults.length;
 
