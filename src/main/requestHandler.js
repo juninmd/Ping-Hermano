@@ -1,11 +1,28 @@
 const runtime = require('postman-runtime');
 const sdk = require('postman-collection');
 
+// Store active request runners
+const activeRuns = new Map();
+
+function cancelRequest(requestId) {
+    const run = activeRuns.get(requestId);
+    if (run) {
+        try {
+            run.abort();
+        } catch (e) {
+            console.error('Error aborting request:', e);
+        }
+        activeRuns.delete(requestId);
+        return true;
+    }
+    return false;
+}
+
 function createHandleRequest(runtimeInstance) {
     return async function handleRequest(requestData) {
       return new Promise((resolve) => {
         try {
-            const { url, method, headers, body, bodyFormData, bodyUrlEncoded, bodyType, preRequestScript, testScript, environment } = requestData;
+            const { url, method, headers, body, bodyFormData, bodyUrlEncoded, bodyType, preRequestScript, testScript, environment, requestId } = requestData;
 
             // Create a collection
             const collection = new sdk.Collection();
@@ -123,6 +140,10 @@ function createHandleRequest(runtimeInstance) {
                     });
                 }
 
+                if (requestId) {
+                    activeRuns.set(requestId, run);
+                }
+
                 run.start({
                     assertion: function (cursor, assertions) {
                         if (assertions) {
@@ -179,10 +200,16 @@ function createHandleRequest(runtimeInstance) {
                         };
                     },
                     done: function (err, summary) {
+                        if (requestId) {
+                            activeRuns.delete(requestId);
+                        }
+
                         if (err || errorData) {
                             const e = err || errorData;
-                             return resolve({
-                                error: e.message,
+                            // Check if it was an abort (Postman runtime might throw a specific error or just stop)
+                            // Usually abort results in an error "Aborted" or similar, or just done.
+                            return resolve({
+                                error: e.message || 'Request Failed',
                                 status: 0,
                                 statusText: 'Error',
                                 headers: {},
@@ -222,4 +249,4 @@ function createHandleRequest(runtimeInstance) {
 
 const handleRequest = createHandleRequest(runtime);
 
-module.exports = { handleRequest, createHandleRequest };
+module.exports = { handleRequest, createHandleRequest, cancelRequest };

@@ -84,6 +84,9 @@ export class RequestTab {
   error: any = null;
   responseMetrics: { time: number; size: string } = { time: 0, size: '0 B' };
 
+  // Execution State
+  activeRequestId: string | null = null;
+
   constructor(id: string) {
       this.id = id;
       makeAutoObservable(this, {}, { autoBind: true });
@@ -701,6 +704,27 @@ export class RequestStore {
     this.setTestScript(item.testScript || '');
   }
 
+  async cancelRequest() {
+      const tab = this.activeTab;
+      if (tab.loading && tab.activeRequestId) {
+          try {
+              if (window.electronAPI) {
+                  await window.electronAPI.cancelRequest(tab.activeRequestId);
+              }
+          } catch (e) {
+              console.error("Failed to cancel", e);
+          } finally {
+              runInAction(() => {
+                  tab.loading = false;
+                  tab.activeRequestId = null;
+                  if (!tab.response) {
+                      tab.response = { status: 0, statusText: 'Cancelled', data: 'Request Cancelled', headers: {} };
+                  }
+              });
+          }
+      }
+  }
+
   async sendRequest() {
     const tab = this.activeTab;
 
@@ -709,11 +733,14 @@ export class RequestStore {
       return;
     }
 
+    const requestId = crypto.randomUUID();
+
     runInAction(() => {
         tab.loading = true;
         tab.response = null;
         tab.error = null;
         tab.responseMetrics = { time: 0, size: '0 B' };
+        tab.activeRequestId = requestId;
     });
 
     this.addToHistory();
@@ -756,7 +783,8 @@ export class RequestStore {
         bodyType: tab.bodyType,
         preRequestScript: tab.preRequestScript,
         testScript: tab.testScript,
-        environment: environmentVariables
+        environment: environmentVariables,
+        requestId: requestId
       });
 
       const endTime = performance.now();
@@ -773,23 +801,29 @@ export class RequestStore {
       if (sizeBytes > 1024 * 1024) sizeStr = `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`;
 
       runInAction(() => {
-        tab.response = result;
-        tab.loading = false;
-        tab.responseMetrics = {
-            time: duration,
-            size: sizeStr
-        };
+        if (tab.activeRequestId === requestId) {
+            tab.response = result;
+            tab.loading = false;
+            tab.responseMetrics = {
+                time: duration,
+                size: sizeStr
+            };
+            tab.activeRequestId = null;
+        }
       });
     } catch (err: any) {
       console.error(err);
       runInAction(() => {
-        tab.response = {
-          status: 0,
-          statusText: 'Error',
-          data: err.message,
-          headers: {}
-        };
-        tab.loading = false;
+         if (tab.activeRequestId === requestId) {
+            tab.response = {
+              status: 0,
+              statusText: 'Error',
+              data: err.message,
+              headers: {}
+            };
+            tab.loading = false;
+            tab.activeRequestId = null;
+         }
       });
     }
   }
