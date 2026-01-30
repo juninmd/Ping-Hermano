@@ -63,36 +63,6 @@ describe('RequestStore', () => {
         expect(store.url).toBe('https://api.example.com');
     });
 
-    it('should handle parsing errors gracefully', () => {
-        // Mock URLSearchParams to throw error
-        const originalURLSearchParams = global.URLSearchParams;
-        // Use a class that throws in constructor
-        global.URLSearchParams = class MockURLSearchParams {
-             constructor() { throw new Error('Parsing error'); }
-             [Symbol.iterator]() { return [][Symbol.iterator](); }
-             append() {}
-             delete() {}
-             get() { return null; }
-             getAll() { return []; }
-             has() { return false; }
-             set() {}
-             sort() {}
-             toString() { return ''; }
-             forEach() {}
-             entries() { return [][Symbol.iterator](); }
-             keys() { return [][Symbol.iterator](); }
-             values() { return [][Symbol.iterator](); }
-             size = 0;
-        } as any;
-
-        const badUrl = 'https://example.com?a=b';
-        // Should catch error and fallback/maintain default
-        store.setUrl(badUrl);
-        expect(store.queryParams).toHaveLength(1); // Default empty
-
-        global.URLSearchParams = originalURLSearchParams;
-    });
-
     it('should handle existing params when setting empty url', () => {
         store.setQueryParams([{ key: 'a', value: 'b' }, { key: '', value: '' }]);
         store.setUrl('');

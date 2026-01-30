@@ -440,6 +440,28 @@ describe('Sidebar', () => {
             });
         });
 
+        it('should handle null result on import (collections)', async () => {
+            renderCollections();
+            const importBtn = screen.getByTitle('Import Collections');
+            const container = importBtn.parentElement;
+            const fileInput = container?.querySelector('input[type="file"]') as HTMLInputElement;
+
+            const originalFileReader = global.FileReader;
+            global.FileReader = class {
+                readAsText() {
+                    if (this.onload) {
+                        this.onload({ target: { result: null } } as any);
+                    }
+                }
+                onload: any = null;
+            } as any;
+
+            fireEvent.change(fileInput, { target: { files: [new File([], 'test')] } });
+
+            expect(global.alert).not.toHaveBeenCalled();
+            global.FileReader = originalFileReader;
+        });
+
         it('should do nothing if file selection is cancelled (Environments)', () => {
             renderEnvs();
             const importBtn = screen.getByTitle('Import Environments');
