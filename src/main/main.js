@@ -1,6 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const { handleRequest } = require('./requestHandler');
+const { handleRequest, cancelRequest } = require('./requestHandler');
 
 const isDev = process.env.npm_lifecycle_event === 'dev' || process.env.npm_lifecycle_event === 'dev:electron';
 
@@ -43,4 +43,8 @@ app.on('window-all-closed', () => {
 
 ipcMain.handle('make-request', async (event, requestData) => {
     return await handleRequest(requestData);
+});
+
+ipcMain.handle('cancel-request', async (event, requestId) => {
+    return cancelRequest(requestId);
 });

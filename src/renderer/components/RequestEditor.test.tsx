@@ -135,12 +135,13 @@ describe('RequestEditor', () => {
         expect(window.electronAPI.makeRequest).toHaveBeenCalled();
     });
 
-    it('should show loading state', () => {
+    it('should show cancel button when loading', () => {
         runInAction(() => {
             requestStore.loading = true;
         });
         render(<RequestEditor />);
-        expect(screen.getByText('Sending...')).toBeInTheDocument();
+        expect(screen.getByText('Cancel')).toBeInTheDocument();
+        expect(screen.queryByText('Send')).not.toBeInTheDocument();
     });
 
     it('should switch tabs', () => {

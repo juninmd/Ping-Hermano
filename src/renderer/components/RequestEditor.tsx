@@ -218,7 +218,7 @@ export const RequestEditor = observer(() => {
       auth, setAuth,
       preRequestScript, setPreRequestScript,
       testScript, setTestScript,
-      sendRequest, loading,
+      sendRequest, loading, cancelRequest,
       collections, saveRequestToCollection
   } = requestStore;
 
@@ -322,6 +322,10 @@ export const RequestEditor = observer(() => {
     setBodyUrlEncoded(bodyUrlEncoded.filter((_, i) => i !== index));
   };
 
+  const removeUrlEncodedItem = (index: number) => {
+    setBodyUrlEncoded(bodyUrlEncoded.filter((_, i) => i !== index));
+  };
+
   return (
     <EditorContainer>
       <RequestBar>
@@ -337,9 +341,15 @@ export const RequestEditor = observer(() => {
              if (e.key === 'Enter') sendRequest();
           }}
         />
-        <SendBtn onClick={() => sendRequest()} disabled={loading}>
-          {loading ? 'Sending...' : 'Send'}
-        </SendBtn>
+        {!loading ? (
+             <SendBtn onClick={() => sendRequest()}>
+              Send
+            </SendBtn>
+        ) : (
+            <SendBtn onClick={() => cancelRequest()} style={{ backgroundColor: '#f48771', borderColor: '#f48771' }}>
+              Cancel
+            </SendBtn>
+        )}
         <SaveBtn onClick={handleSave}>Save</SaveBtn>
         <SaveBtn onClick={() => setShowCodeModal(true)} title="Generate Code">{'</>'}</SaveBtn>
       </RequestBar>
