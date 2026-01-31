@@ -322,10 +322,6 @@ export const RequestEditor = observer(() => {
     setBodyUrlEncoded(bodyUrlEncoded.filter((_, i) => i !== index));
   };
 
-  const removeUrlEncodedItem = (index: number) => {
-    setBodyUrlEncoded(bodyUrlEncoded.filter((_, i) => i !== index));
-  };
-
   return (
     <EditorContainer>
       <RequestBar>
