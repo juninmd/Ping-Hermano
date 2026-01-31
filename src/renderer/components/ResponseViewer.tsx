@@ -51,6 +51,26 @@ const Tabs = styled.div`
   gap: 20px;
   border-bottom: 1px solid #3e3e42;
   margin-top: 10px;
+  align-items: center;
+`;
+
+const Spacer = styled.div`
+  flex: 1;
+`;
+
+const ActionButton = styled.button`
+  padding: 4px 12px;
+  background-color: #3c3c3c;
+  color: #cccccc;
+  border: 1px solid #3e3e42;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-bottom: 5px;
+
+  &:hover {
+    background-color: #4c4c4c;
+  }
 `;
 
 const Tab = styled.div<{ $active?: boolean }>`
@@ -196,6 +216,24 @@ export const ResponseViewer = observer(() => {
     }
   }
 
+  const handleCopy = () => {
+    const text = formatBody(data);
+    navigator.clipboard.writeText(text).catch(err => console.error('Failed to copy: ', err));
+  };
+
+  const handleDownload = () => {
+    const text = formatBody(data);
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'response.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <ViewerContainer>
       <ResponseMeta>
@@ -209,6 +247,14 @@ export const ResponseViewer = observer(() => {
         <Tab $active={activeTab === 'preview'} onClick={() => setActiveTab('preview')}>Preview</Tab>
         <Tab $active={activeTab === 'headers'} onClick={() => setActiveTab('headers')}>Headers</Tab>
         <Tab $active={activeTab === 'tests'} onClick={() => setActiveTab('tests')}>Test Results ({passedCount}/{totalTests})</Tab>
+        {activeTab === 'body' && (
+            <>
+                <Spacer />
+                <ActionButton onClick={handleCopy} title="Copy to Clipboard">Copy</ActionButton>
+                <div style={{ width: 10 }} />
+                <ActionButton onClick={handleDownload} title="Download Response">Download</ActionButton>
+            </>
+        )}
       </Tabs>
 
       <TabContent>
