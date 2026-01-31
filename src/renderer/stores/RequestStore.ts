@@ -187,23 +187,15 @@ export class RequestTab {
        return;
     }
 
-    try {
-        const params = new URLSearchParams(searchPart);
-        const newParams: QueryParam[] = [];
-        params.forEach((value, key) => {
-            newParams.push({ key, value });
-        });
+    const params = new URLSearchParams(searchPart);
+    const newParams: QueryParam[] = [];
+    params.forEach((value, key) => {
+        newParams.push({ key, value });
+    });
 
-        newParams.push({ key: '', value: '' });
+    newParams.push({ key: '', value: '' });
 
-        this.queryParams = newParams;
-    } catch (e) {
-        console.error("Failed to parse query params", e);
-        // Fallback to empty if failed
-        if (this.queryParams.length === 0) {
-             this.queryParams = [{ key: '', value: '' }];
-        }
-    }
+    this.queryParams = newParams;
   }
 
   private updateUrlFromParams() {
@@ -220,17 +212,13 @@ export class RequestTab {
           return;
       }
 
-      try {
-          const searchParams = new URLSearchParams();
-          validParams.forEach(p => {
-              if (p.key) searchParams.append(p.key, p.value);
-          });
+      const searchParams = new URLSearchParams();
+      validParams.forEach(p => {
+          if (p.key) searchParams.append(p.key, p.value);
+      });
 
-          const queryString = searchParams.toString();
-          this.url = `${baseUrl}?${queryString}`;
-      } catch (e) {
-          console.error("Failed to update url from params", e);
-      }
+      const queryString = searchParams.toString();
+      this.url = `${baseUrl}?${queryString}`;
   }
 }
 
