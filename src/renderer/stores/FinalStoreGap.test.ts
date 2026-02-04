@@ -1,60 +1,62 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { runInAction } from 'mobx';
 import { RequestStore } from './RequestStore';
 
-describe('Final Gap Coverage - RequestStore', () => {
+describe('FinalStoreGap', () => {
     let store: RequestStore;
+    let consoleSpy: any;
 
     beforeEach(() => {
         store = new RequestStore();
-        // Clear storage
-        store.collections = [];
-        store.history = [];
+        consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        (window as any).electronAPI = {
+            cancelRequest: vi.fn(),
+            makeRequest: vi.fn(),
+            getFilePath: vi.fn()
+        };
     });
 
-    it('should add unique items to history', () => {
-        store.setMethod('GET');
-        store.setUrl('http://test1.com');
-        store.addToHistory();
-
-        expect(store.history).toHaveLength(1);
-
-        store.setMethod('POST');
-        store.setUrl('http://test2.com'); // Different
-        store.addToHistory();
-
-        expect(store.history).toHaveLength(2);
-        expect(store.history[0].url).toBe('http://test2.com');
+    afterEach(() => {
+        vi.restoreAllMocks();
+        delete (window as any).electronAPI;
     });
 
-    it('should save, rename, and delete request in collection', () => {
-        store.createCollection('My Col');
-        const colId = store.collections[0].id;
+    it('should handle error when cancelling request fails', async () => {
+        const error = new Error('Cancel failed');
+        (window as any).electronAPI.cancelRequest.mockRejectedValue(error);
 
-        store.setMethod('GET');
-        store.setUrl('http://api.com');
+        runInAction(() => {
+            store.addTab();
+            store.activeTab.loading = true;
+            store.activeTab.activeRequestId = '123';
+        });
 
-        // Save
-        store.saveRequestToCollection(colId, 'My Req');
-        expect(store.collections[0].requests).toHaveLength(1);
-        const reqId = store.collections[0].requests[0].id;
+        await store.cancelRequest();
 
-        // Rename
-        store.renameRequestInCollection(colId, reqId, 'Renamed Req');
-        expect(store.collections[0].requests[0].name).toBe('Renamed Req');
-
-        // Delete
-        store.deleteRequestFromCollection(colId, reqId);
-        expect(store.collections[0].requests).toHaveLength(0);
+        expect(consoleSpy).toHaveBeenCalledWith("Failed to cancel", error);
+        // Should still cleanup
+        expect(store.activeTab.loading).toBe(false);
+        expect(store.activeTab.activeRequestId).toBeNull();
+        expect(store.activeTab.response.statusText).toBe('Cancelled');
     });
 
-    it('should handle non-existent collection operations gracefully', () => {
-        // Just ensuring no crash
-        store.saveRequestToCollection('invalid-id', 'test');
-        store.renameRequestInCollection('invalid-id', 'req', 'test');
-        store.deleteRequestFromCollection('invalid-id', 'req');
+    it('should preserve existing response if set during cancellation (race condition)', async () => {
+        (window as any).electronAPI.cancelRequest.mockResolvedValue(undefined);
 
-        // Rename request in valid collection but invalid request id
-        store.createCollection('Col');
-        store.renameRequestInCollection(store.collections[0].id, 'invalid-req', 'new');
+        runInAction(() => {
+            store.addTab();
+            store.activeTab.loading = true; // Still "loading" UI-wise
+            store.activeTab.activeRequestId = '123';
+            // Simulate response arriving just before cancel logic finishes
+            store.activeTab.response = { status: 200, statusText: 'OK', data: 'Success', headers: {} };
+        });
+
+        await store.cancelRequest();
+
+        expect(store.activeTab.loading).toBe(false);
+        expect(store.activeTab.activeRequestId).toBeNull();
+        // Should NOT be 'Cancelled'
+        expect(store.activeTab.response.statusText).toBe('OK');
+        expect(store.activeTab.response.data).toBe('Success');
     });
 });
