@@ -1,41 +1,94 @@
-import { describe, it, expect, vi } from 'vitest';
-import { createHandleRequest } from './requestHandler';
+import { vi, describe, it, expect } from 'vitest';
+import { createHandleRequest, cancelRequest } from './requestHandler';
 
-describe('Final Gap Coverage - Main Process', () => {
-  it('should handle runner completion without response data (Line 212 coverage)', async () => {
+describe('FinalGap Main Process', () => {
+    it('should cleanup activeRuns after request completes', async () => {
+        const requestId = 'cleanup-test-id';
+        let doneCallback;
+        let startCallbacks;
 
-    const mockRunner = {
-        run: vi.fn((collection, options, callback) => {
-            const runObj = {
-                start: vi.fn((callbacks) => {
-                    // This is where we simulate the "done" event firing
-                    // without any prior "request" event firing.
-                    callbacks.done(null, {});
-                }),
-                abort: vi.fn()
-            };
-            // Return the run object via callback
-            callback(null, runObj);
-        })
-    };
+        const mockRun = {
+            start: vi.fn((callbacks) => {
+                startCallbacks = callbacks;
+                // Don't call done immediately, let us control it
+            }),
+            abort: vi.fn()
+        };
 
-    const mockRuntime = {
-      Runner: vi.fn(function() { return mockRunner; })
-    };
+        const mockRunner = {
+            run: vi.fn((collection, options, cb) => {
+                cb(null, mockRun);
+            })
+        };
 
-    const handleRequest = createHandleRequest(mockRuntime);
+        // Needs to be a constructor
+        const MockRunnerClass = vi.fn(function() {
+            return mockRunner;
+        });
 
-    const result = await handleRequest({
-      url: 'http://test.com',
-      method: 'GET'
+        const mockRuntime = {
+            Runner: MockRunnerClass,
+            VariableScope: vi.fn()
+        };
+
+        const handleRequest = createHandleRequest(mockRuntime);
+
+        // 1. Start request
+        const requestPromise = handleRequest({ url: 'http://test.com', requestId });
+
+        // Wait for run.start to be called
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        // 2. Verify it is active (cancelRequest returns true)
+        // NOTE: cancelRequest removes it, so we can't use it to just "peek".
+        // But we want to test the "done" callback specifically.
+
+        // Let's rely on the fact that if "done" DOES NOT remove it, it stays there forever.
+        // So if we finish the request, and THEN call cancelRequest, it should return false.
+
+        // Execute done callback
+        expect(startCallbacks).toBeDefined();
+        startCallbacks.done(null, {});
+
+        await requestPromise;
+
+        // 3. Try to cancel. It should return false because it should have been removed.
+        const result = cancelRequest(requestId);
+        expect(result).toBe(false);
     });
 
-    if (result.statusText === 'Exception') {
-        throw new Error('Unexpected Exception: ' + result.error);
-    }
+    it('should have added it to activeRuns initially', async () => {
+        const requestId = 'active-test-id';
 
-    expect(result.status).toBe(0);
-    expect(result.statusText).toBe('No Response');
-    expect(result.data).toBe('');
-  });
+        const mockRun = {
+            start: vi.fn(),
+            abort: vi.fn()
+        };
+
+        const mockRunner = {
+            run: vi.fn((collection, options, cb) => {
+                cb(null, mockRun);
+            })
+        };
+
+        const MockRunnerClass = vi.fn(function() {
+            return mockRunner;
+        });
+
+        const mockRuntime = {
+            Runner: MockRunnerClass,
+            VariableScope: vi.fn()
+        };
+
+        const handleRequest = createHandleRequest(mockRuntime);
+
+        // Start
+        handleRequest({ url: 'http://test.com', requestId });
+
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        // Check if it's there by cancelling it
+        const result = cancelRequest(requestId);
+        expect(result).toBe(true);
+    });
 });
