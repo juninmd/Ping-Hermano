@@ -39,4 +39,31 @@ describe('RequestEditor Gap Extra Tests', () => {
         expect(requestStore.bodyFormData[0].value).toBe('test.txt');
         expect(requestStore.bodyFormData[0].src).toBe('test.txt'); // Fallback behavior
     });
+
+    it('should not save if collection index is non-numeric', () => {
+        // Setup multiple collections
+        runInAction(() => {
+             requestStore.collections = [
+                { id: '1', name: 'Col 1', requests: [] },
+                { id: '2', name: 'Col 2', requests: [] }
+            ];
+        });
+
+        const promptSpy = vi.spyOn(window, 'prompt')
+            .mockReturnValueOnce('MyReq')
+            .mockReturnValueOnce('abc');
+
+        const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+        render(<RequestEditor />);
+
+        fireEvent.click(screen.getAllByText('Save')[0]);
+
+        expect(requestStore.collections[0].requests).toHaveLength(0);
+        expect(requestStore.collections[1].requests).toHaveLength(0);
+        expect(alertSpy).not.toHaveBeenCalledWith('Saved!');
+
+        promptSpy.mockRestore();
+        alertSpy.mockRestore();
+    });
 });
