@@ -8,7 +8,9 @@ describe('FinalStoreGap', () => {
 
     beforeEach(() => {
         store = new RequestStore();
-        consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        // Spy on console.error but allow it to print (no mockImplementation)
+        // verify spy works
+        consoleSpy = vi.spyOn(console, 'error');
         (window as any).electronAPI = {
             cancelRequest: vi.fn(),
             makeRequest: vi.fn(),
@@ -18,12 +20,14 @@ describe('FinalStoreGap', () => {
 
     afterEach(() => {
         vi.restoreAllMocks();
+        vi.unstubAllGlobals();
         delete (window as any).electronAPI;
     });
 
     it('should handle error when cancelling request fails', async () => {
         const error = new Error('Cancel failed');
         (window as any).electronAPI.cancelRequest.mockRejectedValue(error);
+        consoleSpy.mockImplementation(() => {});
 
         runInAction(() => {
             store.addTab();
@@ -58,5 +62,55 @@ describe('FinalStoreGap', () => {
         // Should NOT be 'Cancelled'
         expect(store.activeTab.response.statusText).toBe('OK');
         expect(store.activeTab.response.data).toBe('Success');
+    });
+
+    // Mocking localStorage for error handling
+    const mockLocalStorageError = (methodName: string, callMethod: () => void, errorMsg: string) => {
+        const mockGetItem = vi.fn().mockImplementation((key) => {
+            // console.log(`DEBUG: getItem called with ${key}`);
+            return 'invalid-json';
+        });
+
+        const mockLocalStorage = {
+            getItem: mockGetItem,
+            setItem: vi.fn(),
+            removeItem: vi.fn(),
+            clear: vi.fn(),
+            length: 0,
+            key: vi.fn(),
+        };
+
+        // Stub global localStorage
+        vi.stubGlobal('localStorage', mockLocalStorage);
+
+        // Stub JSON.parse to ensure it throws?
+        // 'invalid-json' should trigger SyntaxError naturally.
+
+        try {
+            // Silence console during this specific call
+            consoleSpy.mockImplementation(() => {});
+            callMethod();
+
+            expect(mockGetItem).toHaveBeenCalled();
+            expect(consoleSpy).toHaveBeenCalledWith(errorMsg, expect.any(Error));
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    };
+
+    it('should handle error when loading tabs fails', () => {
+        mockLocalStorageError('loadTabs', () => store.loadTabs(), "Failed to load tabs");
+    });
+
+    it('should handle error when loading history fails', () => {
+        mockLocalStorageError('loadHistory', () => store.loadHistory(), "Failed to parse history");
+    });
+
+    it('should handle error when loading collections fails', () => {
+        mockLocalStorageError('loadCollections', () => store.loadCollections(), "Failed to parse collections");
+    });
+
+    it('should handle error when loading environments fails', () => {
+        mockLocalStorageError('loadEnvironments', () => store.loadEnvironments(), "Failed to parse environments");
     });
 });
