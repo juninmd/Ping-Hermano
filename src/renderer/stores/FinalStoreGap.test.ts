@@ -67,7 +67,6 @@ describe('FinalStoreGap', () => {
     // Mocking localStorage for error handling
     const mockLocalStorageError = (methodName: string, callMethod: () => void, errorMsg: string) => {
         const mockGetItem = vi.fn().mockImplementation((key) => {
-            // console.log(`DEBUG: getItem called with ${key}`);
             return 'invalid-json';
         });
 
@@ -80,14 +79,9 @@ describe('FinalStoreGap', () => {
             key: vi.fn(),
         };
 
-        // Stub global localStorage
         vi.stubGlobal('localStorage', mockLocalStorage);
 
-        // Stub JSON.parse to ensure it throws?
-        // 'invalid-json' should trigger SyntaxError naturally.
-
         try {
-            // Silence console during this specific call
             consoleSpy.mockImplementation(() => {});
             callMethod();
 
@@ -112,5 +106,67 @@ describe('FinalStoreGap', () => {
 
     it('should handle error when loading environments fails', () => {
         mockLocalStorageError('loadEnvironments', () => store.loadEnvironments(), "Failed to parse environments");
+    });
+
+    it('should handle race condition in sendRequest (success path)', async () => {
+        store.setUrl('http://race.com');
+        let resolveRequest: any;
+        (window as any).electronAPI.makeRequest.mockImplementation(() => new Promise(resolve => {
+            resolveRequest = resolve;
+        }));
+
+        const promise = store.sendRequest();
+
+        // Change ID while pending
+        runInAction(() => {
+            store.activeTab.activeRequestId = 'changed-id';
+        });
+
+        resolveRequest({ status: 200, data: 'ok' });
+        await promise;
+
+        // Should NOT update response because ID changed
+        expect(store.response).toBeNull();
+    });
+
+    it('should handle race condition in sendRequest (error path)', async () => {
+        store.setUrl('http://race-error.com');
+        let rejectRequest: any;
+        (window as any).electronAPI.makeRequest.mockImplementation(() => new Promise((_, reject) => {
+            rejectRequest = reject;
+        }));
+
+        const promise = store.sendRequest();
+
+        // Change ID while pending
+        runInAction(() => {
+            store.activeTab.activeRequestId = 'changed-id';
+        });
+
+        // Use setTimeout to ensure the catch block executes after ID change
+        // (though runInAction above is synchronous, the promise rejection handling is microtask)
+        consoleSpy.mockImplementation(() => {});
+        rejectRequest(new Error('fail'));
+
+        await promise;
+
+        // Should NOT update error state because ID changed
+        // (sendRequest sets error to null initially)
+        expect(store.error).toBeNull();
+    });
+
+    it('should handle success in sendRequest (normal path)', async () => {
+        store.setUrl('http://normal.com');
+        (window as any).electronAPI.makeRequest.mockResolvedValue({
+            status: 200,
+            statusText: 'OK',
+            data: 'Success',
+            headers: {}
+        });
+
+        await store.sendRequest();
+
+        expect(store.response.data).toBe('Success');
+        expect(store.loading).toBe(false);
     });
 });
