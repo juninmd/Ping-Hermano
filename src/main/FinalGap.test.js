@@ -10,7 +10,6 @@ describe('FinalGap Main Process', () => {
         const mockRun = {
             start: vi.fn((callbacks) => {
                 startCallbacks = callbacks;
-                // Don't call done immediately, let us control it
             }),
             abort: vi.fn()
         };
@@ -21,7 +20,6 @@ describe('FinalGap Main Process', () => {
             })
         };
 
-        // Needs to be a constructor
         const MockRunnerClass = vi.fn(function() {
             return mockRunner;
         });
@@ -32,27 +30,13 @@ describe('FinalGap Main Process', () => {
         };
 
         const handleRequest = createHandleRequest(mockRuntime);
-
-        // 1. Start request
         const requestPromise = handleRequest({ url: 'http://test.com', requestId });
-
-        // Wait for run.start to be called
         await new Promise(resolve => setTimeout(resolve, 0));
 
-        // 2. Verify it is active (cancelRequest returns true)
-        // NOTE: cancelRequest removes it, so we can't use it to just "peek".
-        // But we want to test the "done" callback specifically.
-
-        // Let's rely on the fact that if "done" DOES NOT remove it, it stays there forever.
-        // So if we finish the request, and THEN call cancelRequest, it should return false.
-
-        // Execute done callback
         expect(startCallbacks).toBeDefined();
         startCallbacks.done(null, {});
 
         await requestPromise;
-
-        // 3. Try to cancel. It should return false because it should have been removed.
         const result = cancelRequest(requestId);
         expect(result).toBe(false);
     });
@@ -81,14 +65,55 @@ describe('FinalGap Main Process', () => {
         };
 
         const handleRequest = createHandleRequest(mockRuntime);
-
-        // Start
         handleRequest({ url: 'http://test.com', requestId });
-
         await new Promise(resolve => setTimeout(resolve, 0));
-
-        // Check if it's there by cancelling it
         const result = cancelRequest(requestId);
         expect(result).toBe(true);
+    });
+
+    it('should handle done callback with no response data and no error', async () => {
+        const requestId = 'no-response-test-id';
+        let startCallbacks;
+
+        const mockRun = {
+            start: vi.fn((callbacks) => {
+                startCallbacks = callbacks;
+            }),
+            abort: vi.fn()
+        };
+
+        const mockRunner = {
+            run: vi.fn((collection, options, cb) => {
+                cb(null, mockRun);
+            })
+        };
+
+        const MockRunnerClass = vi.fn(function() {
+            return mockRunner;
+        });
+
+        const mockRuntime = {
+            Runner: MockRunnerClass,
+            VariableScope: vi.fn()
+        };
+
+        const handleRequest = createHandleRequest(mockRuntime);
+        const requestPromise = handleRequest({ url: 'http://test.com', requestId });
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        // Trigger done WITHOUT calling request() first, so responseData is null
+        // And pass no error to done()
+        startCallbacks.done(null, {});
+
+        const result = await requestPromise;
+
+        expect(result).toEqual({
+             status: 0,
+             statusText: 'No Response',
+             headers: {},
+             data: '',
+             testResults: [],
+             consoleLogs: []
+        });
     });
 });
