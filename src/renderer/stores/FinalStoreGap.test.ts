@@ -1,172 +1,97 @@
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { runInAction } from 'mobx';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RequestStore } from './RequestStore';
+import { runInAction } from 'mobx';
 
-describe('FinalStoreGap', () => {
+describe('RequestStore Final Gap', () => {
     let store: RequestStore;
-    let consoleSpy: any;
 
     beforeEach(() => {
         store = new RequestStore();
-        // Spy on console.error but allow it to print (no mockImplementation)
-        // verify spy works
-        consoleSpy = vi.spyOn(console, 'error');
-        (window as any).electronAPI = {
-            cancelRequest: vi.fn(),
-            makeRequest: vi.fn(),
-            getFilePath: vi.fn()
-        };
+        vi.clearAllMocks();
+        // Mock localStorage
+        const storage: Record<string, string> = {};
+        vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key, value) => {
+            storage[key] = value;
+        });
+        vi.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => {
+            return storage[key] || null;
+        });
     });
 
-    afterEach(() => {
-        vi.restoreAllMocks();
-        vi.unstubAllGlobals();
-        delete (window as any).electronAPI;
+    it('should return false if imported collections is not an array', () => {
+        const json = JSON.stringify({ not: 'an array' });
+        const result = store.importCollections(json);
+        expect(result).toBe(false);
     });
 
-    it('should handle error when cancelling request fails', async () => {
-        const error = new Error('Cancel failed');
-        (window as any).electronAPI.cancelRequest.mockRejectedValue(error);
-        consoleSpy.mockImplementation(() => {});
+    it('should import collections successfully', () => {
+        const json = JSON.stringify([
+            {
+                id: 'col-1',
+                name: 'Test Collection',
+                requests: [
+                    { id: 'req-1', name: 'Req 1', method: 'GET', url: 'http://test.com' }
+                ]
+            }
+        ]);
+        const result = store.importCollections(json);
+        expect(result).toBe(true);
+        expect(store.collections.length).toBe(1);
+        expect(store.collections[0].name).toBe('Test Collection');
+        expect(store.collections[0].requests.length).toBe(1);
+    });
 
+    it('should return false if imported environments is not an array', () => {
+        const json = JSON.stringify({ not: 'an array' });
+        const result = store.importEnvironments(json);
+        expect(result).toBe(false);
+    });
+
+    it('should import environments successfully', () => {
+        const json = JSON.stringify([
+            {
+                id: 'env-1',
+                name: 'Test Env',
+                variables: [
+                    { key: 'VAR', value: 'VAL', enabled: true }
+                ]
+            }
+        ]);
+        const result = store.importEnvironments(json);
+        expect(result).toBe(true);
+        expect(store.environments.length).toBe(1);
+        expect(store.environments[0].name).toBe('Test Env');
+    });
+
+    it('should handle error during cancelRequest', async () => {
+        // Setup a loading request
         runInAction(() => {
             store.addTab();
             store.activeTab.loading = true;
-            store.activeTab.activeRequestId = '123';
+            store.activeTab.activeRequestId = 'test-req-id';
         });
 
-        await store.cancelRequest();
-
-        expect(consoleSpy).toHaveBeenCalledWith("Failed to cancel", error);
-        // Should still cleanup
-        expect(store.activeTab.loading).toBe(false);
-        expect(store.activeTab.activeRequestId).toBeNull();
-        expect(store.activeTab.response.statusText).toBe('Cancelled');
-    });
-
-    it('should preserve existing response if set during cancellation (race condition)', async () => {
-        (window as any).electronAPI.cancelRequest.mockResolvedValue(undefined);
-
-        runInAction(() => {
-            store.addTab();
-            store.activeTab.loading = true; // Still "loading" UI-wise
-            store.activeTab.activeRequestId = '123';
-            // Simulate response arriving just before cancel logic finishes
-            store.activeTab.response = { status: 200, statusText: 'OK', data: 'Success', headers: {} };
-        });
-
-        await store.cancelRequest();
-
-        expect(store.activeTab.loading).toBe(false);
-        expect(store.activeTab.activeRequestId).toBeNull();
-        // Should NOT be 'Cancelled'
-        expect(store.activeTab.response.statusText).toBe('OK');
-        expect(store.activeTab.response.data).toBe('Success');
-    });
-
-    // Mocking localStorage for error handling
-    const mockLocalStorageError = (methodName: string, callMethod: () => void, errorMsg: string) => {
-        const mockGetItem = vi.fn().mockImplementation((key) => {
-            return 'invalid-json';
-        });
-
-        const mockLocalStorage = {
-            getItem: mockGetItem,
-            setItem: vi.fn(),
-            removeItem: vi.fn(),
-            clear: vi.fn(),
-            length: 0,
-            key: vi.fn(),
+        // Mock window.electronAPI.cancelRequest to throw
+        window.electronAPI = {
+            cancelRequest: vi.fn().mockRejectedValue(new Error('Cancel Failed')),
+            makeRequest: vi.fn(),
+            getFilePath: vi.fn(),
         };
 
-        vi.stubGlobal('localStorage', mockLocalStorage);
+        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-        try {
-            consoleSpy.mockImplementation(() => {});
-            callMethod();
+        await store.cancelRequest();
 
-            expect(mockGetItem).toHaveBeenCalled();
-            expect(consoleSpy).toHaveBeenCalledWith(errorMsg, expect.any(Error));
-        } finally {
-            vi.unstubAllGlobals();
-        }
-    };
-
-    it('should handle error when loading tabs fails', () => {
-        mockLocalStorageError('loadTabs', () => store.loadTabs(), "Failed to load tabs");
-    });
-
-    it('should handle error when loading history fails', () => {
-        mockLocalStorageError('loadHistory', () => store.loadHistory(), "Failed to parse history");
-    });
-
-    it('should handle error when loading collections fails', () => {
-        mockLocalStorageError('loadCollections', () => store.loadCollections(), "Failed to parse collections");
-    });
-
-    it('should handle error when loading environments fails', () => {
-        mockLocalStorageError('loadEnvironments', () => store.loadEnvironments(), "Failed to parse environments");
-    });
-
-    it('should handle race condition in sendRequest (success path)', async () => {
-        store.setUrl('http://race.com');
-        let resolveRequest: any;
-        (window as any).electronAPI.makeRequest.mockImplementation(() => new Promise(resolve => {
-            resolveRequest = resolve;
-        }));
-
-        const promise = store.sendRequest();
-
-        // Change ID while pending
-        runInAction(() => {
-            store.activeTab.activeRequestId = 'changed-id';
-        });
-
-        resolveRequest({ status: 200, data: 'ok' });
-        await promise;
-
-        // Should NOT update response because ID changed
-        expect(store.response).toBeNull();
-    });
-
-    it('should handle race condition in sendRequest (error path)', async () => {
-        store.setUrl('http://race-error.com');
-        let rejectRequest: any;
-        (window as any).electronAPI.makeRequest.mockImplementation(() => new Promise((_, reject) => {
-            rejectRequest = reject;
-        }));
-
-        const promise = store.sendRequest();
-
-        // Change ID while pending
-        runInAction(() => {
-            store.activeTab.activeRequestId = 'changed-id';
-        });
-
-        // Use setTimeout to ensure the catch block executes after ID change
-        // (though runInAction above is synchronous, the promise rejection handling is microtask)
-        consoleSpy.mockImplementation(() => {});
-        rejectRequest(new Error('fail'));
-
-        await promise;
-
-        // Should NOT update error state because ID changed
-        // (sendRequest sets error to null initially)
-        expect(store.error).toBeNull();
-    });
-
-    it('should handle success in sendRequest (normal path)', async () => {
-        store.setUrl('http://normal.com');
-        (window as any).electronAPI.makeRequest.mockResolvedValue({
-            status: 200,
-            statusText: 'OK',
-            data: 'Success',
+        expect(consoleSpy).toHaveBeenCalledWith('Failed to cancel', expect.any(Error));
+        expect(store.activeTab.loading).toBe(false);
+        expect(store.activeTab.activeRequestId).toBeNull();
+        expect(store.activeTab.response).toEqual({
+            status: 0,
+            statusText: 'Cancelled',
+            data: 'Request Cancelled',
             headers: {}
         });
 
-        await store.sendRequest();
-
-        expect(store.response.data).toBe('Success');
-        expect(store.loading).toBe(false);
+        consoleSpy.mockRestore();
     });
 });

@@ -6,15 +6,6 @@ import { requestStore } from '../stores/RequestStore';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { runInAction } from 'mobx';
 
-// Mock dependencies
-vi.mock('../stores/RequestStore', async () => {
-    const actual = await vi.importActual('../stores/RequestStore');
-    return {
-        ...actual,
-        requestStore: new (actual as any).RequestStore()
-    };
-});
-
 describe('FinalGapCoverage', () => {
     let promptSpy: any;
     let alertSpy: any;
@@ -29,6 +20,7 @@ describe('FinalGapCoverage', () => {
         runInAction(() => {
             requestStore.collections = [];
             requestStore.environments = [];
+            requestStore.history = [];
         });
     });
 
@@ -112,11 +104,62 @@ describe('FinalGapCoverage', () => {
     });
 
     describe('Sidebar', () => {
+        it('should alert if collection import fails (invalid JSON)', async () => {
+            render(<Sidebar />);
+
+            // Ensure we are on Collections tab
+            fireEvent.click(screen.getByText('Collections'));
+
+            const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+            expect(fileInput).toBeInTheDocument();
+
+            // Mock FileReader to return invalid JSON
+            const file = new File(['invalid-json'], 'col.json', { type: 'application/json' });
+
+            Object.defineProperty(fileInput, 'files', {
+                value: [file]
+            });
+
+            fireEvent.change(fileInput);
+
+            await waitFor(() => {
+                expect(alertSpy).toHaveBeenCalledWith('Failed to import collections. Invalid format?');
+            });
+        });
+
         it('should alert if environment import fails (invalid JSON)', async () => {
              render(<Sidebar />);
 
              // Switch to Environments tab
              fireEvent.click(screen.getByText('Envs'));
+
+             // Note: There are two file inputs now (one for collections, one for envs).
+             // Since they are hidden, we rely on the active tab showing the correct one?
+             // Actually, both are rendered but maybe only one is visible or we need to pick the right one.
+             // The Sidebar implementation has both inputs rendered always in their respective tab blocks.
+             // Since we switched tab, the environments one should be the one we interact with.
+             // But wait, `document.querySelector` might pick the first one which is collections input if both are present in DOM?
+             // Let's use `getAllByTitle` or similar to target the specific input or button.
+             // The inputs are hidden `display: none`.
+             // In Sidebar.tsx:
+             // Collections input: ref={collectionFileInput}
+             // Environments input: ref={envFileInput}
+
+             // We can select by ref if we could, but we can't in tests easily.
+             // We can assume that since we switched tab, we should look for the input associated with "Import Environments" button.
+             // But the inputs are just generic <input type="file" ... />.
+             // The environment input is inside the `activeTab === 'environments'` block.
+             // The collection input is inside the `activeTab === 'collections'` block.
+             // So `screen.getByTitle('Import Environments')` is the button. The input is previous sibling?
+             // Or we can just use `container.querySelectorAll('input[type="file"]')` and pick the second one if both are rendered?
+             // Wait, `activeTab` logic in `Sidebar` creates/destroys the DOM elements for that tab.
+             // So if we are on 'Envs' tab, ONLY the environment input should be in the DOM (if Sidebar structure removes other tabs content).
+
+             // Let's check `Sidebar.tsx`.
+             // `{activeTab === 'collections' && ( ... )}`
+             // `{activeTab === 'environments' && ( ... )}`
+             // So ONLY ONE input is present at a time.
+             // So `document.querySelector('input[type="file"]')` should work!
 
              const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
              expect(fileInput).toBeInTheDocument();
@@ -147,7 +190,8 @@ describe('FinalGapCoverage', () => {
                             name: 'Original Name',
                             method: 'GET',
                             url: 'http://test.com',
-                            date: ''
+                            date: '',
+                            headers: []
                         }]
                     }
                 ];
@@ -164,6 +208,32 @@ describe('FinalGapCoverage', () => {
             fireEvent.click(pencils[0]);
 
             expect(requestStore.collections[0].requests[0].name).toBe('Original Name');
+        });
+
+        it('should create environment via button', () => {
+            render(<Sidebar />);
+            fireEvent.click(screen.getByText('Envs'));
+
+            promptSpy.mockReturnValue('New Env');
+
+            const addBtn = screen.getByTitle('New Environment');
+            fireEvent.click(addBtn);
+
+            expect(requestStore.environments).toHaveLength(1);
+            expect(requestStore.environments[0].name).toBe('New Env');
+        });
+
+        it('should create collection via button', () => {
+            render(<Sidebar />);
+            fireEvent.click(screen.getByText('Collections'));
+
+            promptSpy.mockReturnValue('New Col');
+
+            const addBtn = screen.getByTitle('New Collection');
+            fireEvent.click(addBtn);
+
+            expect(requestStore.collections).toHaveLength(1);
+            expect(requestStore.collections[0].name).toBe('New Col');
         });
     });
 });

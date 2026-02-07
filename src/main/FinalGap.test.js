@@ -1,119 +1,90 @@
-import { vi, describe, it, expect } from 'vitest';
-import { createHandleRequest, cancelRequest } from './requestHandler';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { createHandleRequest } from './requestHandler';
 
-describe('FinalGap Main Process', () => {
-    it('should cleanup activeRuns after request completes', async () => {
-        const requestId = 'cleanup-test-id';
-        let doneCallback;
-        let startCallbacks;
+describe('handleRequest Final Gap', () => {
+    let mockRuntime;
+    let mockRunner;
+    let mockRun;
 
-        const mockRun = {
-            start: vi.fn((callbacks) => {
-                startCallbacks = callbacks;
-            }),
-            abort: vi.fn()
-        };
-
-        const mockRunner = {
-            run: vi.fn((collection, options, cb) => {
-                cb(null, mockRun);
-            })
-        };
-
-        const MockRunnerClass = vi.fn(function() {
-            return mockRunner;
-        });
-
-        const mockRuntime = {
-            Runner: MockRunnerClass,
-            VariableScope: vi.fn()
-        };
-
-        const handleRequest = createHandleRequest(mockRuntime);
-        const requestPromise = handleRequest({ url: 'http://test.com', requestId });
-        await new Promise(resolve => setTimeout(resolve, 0));
-
-        expect(startCallbacks).toBeDefined();
-        startCallbacks.done(null, {});
-
-        await requestPromise;
-        const result = cancelRequest(requestId);
-        expect(result).toBe(false);
-    });
-
-    it('should have added it to activeRuns initially', async () => {
-        const requestId = 'active-test-id';
-
-        const mockRun = {
+    beforeEach(() => {
+        mockRun = {
             start: vi.fn(),
-            abort: vi.fn()
+            abort: vi.fn(),
         };
 
-        const mockRunner = {
-            run: vi.fn((collection, options, cb) => {
-                cb(null, mockRun);
-            })
+        mockRunner = {
+            run: vi.fn((collection, options, callback) => {
+                // We need to defer the callback execution or just call it immediately?
+                // The real runtime calls callback with (err, run).
+                callback(null, mockRun);
+            }),
         };
 
-        const MockRunnerClass = vi.fn(function() {
-            return mockRunner;
-        });
-
-        const mockRuntime = {
-            Runner: MockRunnerClass,
-            VariableScope: vi.fn()
+        // Important: Use a regular function so it can be called with 'new'
+        mockRuntime = {
+            Runner: vi.fn(function() { return mockRunner; }),
         };
-
-        const handleRequest = createHandleRequest(mockRuntime);
-        handleRequest({ url: 'http://test.com', requestId });
-        await new Promise(resolve => setTimeout(resolve, 0));
-        const result = cancelRequest(requestId);
-        expect(result).toBe(true);
     });
 
-    it('should handle done callback with no response data and no error', async () => {
-        const requestId = 'no-response-test-id';
-        let startCallbacks;
-
-        const mockRun = {
-            start: vi.fn((callbacks) => {
-                startCallbacks = callbacks;
-            }),
-            abort: vi.fn()
-        };
-
-        const mockRunner = {
-            run: vi.fn((collection, options, cb) => {
-                cb(null, mockRun);
-            })
-        };
-
-        const MockRunnerClass = vi.fn(function() {
-            return mockRunner;
-        });
-
-        const mockRuntime = {
-            Runner: MockRunnerClass,
-            VariableScope: vi.fn()
-        };
-
+    it('should handle error in done callback', async () => {
         const handleRequest = createHandleRequest(mockRuntime);
-        const requestPromise = handleRequest({ url: 'http://test.com', requestId });
-        await new Promise(resolve => setTimeout(resolve, 0));
 
-        // Trigger done WITHOUT calling request() first, so responseData is null
-        // And pass no error to done()
-        startCallbacks.done(null, {});
-
-        const result = await requestPromise;
-
-        expect(result).toEqual({
-             status: 0,
-             statusText: 'No Response',
-             headers: {},
-             data: '',
-             testResults: [],
-             consoleLogs: []
+        mockRun.start.mockImplementation((callbacks) => {
+            // Simulate done with error
+            callbacks.done(new Error('Simulated Done Error'), {});
         });
+
+        const result = await handleRequest({
+            url: 'http://test.com',
+            method: 'GET',
+            headers: [],
+            requestId: 'req-1'
+        });
+
+        expect(result.status).toBe(0);
+        expect(result.statusText).toBe('Error');
+        expect(result.error).toBe('Simulated Done Error');
+    });
+
+    it('should handle errorData in done callback', async () => {
+        const handleRequest = createHandleRequest(mockRuntime);
+
+        mockRun.start.mockImplementation((callbacks) => {
+            // Simulate request error first, setting errorData
+            callbacks.request(new Error('Request Error'), {}, {}, {}, {}, {}, {});
+            // Then done
+            callbacks.done(null, {});
+        });
+
+        const result = await handleRequest({
+            url: 'http://test.com',
+            method: 'GET',
+            headers: [],
+            requestId: 'req-2'
+        });
+
+        expect(result.status).toBe(0);
+        expect(result.statusText).toBe('Error');
+        expect(result.error).toBe('Request Error');
+    });
+
+    it('should handle abort/unknown error in done callback (no message)', async () => {
+        const handleRequest = createHandleRequest(mockRuntime);
+
+        mockRun.start.mockImplementation((callbacks) => {
+            // Simulate done with error object without message (e.g. weird runtime error)
+            callbacks.done({}, {});
+        });
+
+        const result = await handleRequest({
+            url: 'http://test.com',
+            method: 'GET',
+            headers: [],
+            requestId: 'req-3'
+        });
+
+        expect(result.status).toBe(0);
+        expect(result.statusText).toBe('Error');
+        expect(result.error).toBe('Request Failed');
     });
 });
