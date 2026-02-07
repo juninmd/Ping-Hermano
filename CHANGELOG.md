@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/juninmd/Ping-Hermano/compare/v1.0.0...v1.1.0) (2026-02-07)
+
+
+### Features
+
+* ensure 100% test coverage and basic functionality ([#49](https://github.com/juninmd/Ping-Hermano/issues/49)) ([6c4cc05](https://github.com/juninmd/Ping-Hermano/commit/6c4cc05b71c316f813966f7a2c6cd53d13a66894))
+
 ## 1.0.0 (2026-02-02)
 
 
