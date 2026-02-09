@@ -52,9 +52,21 @@ This will start the Vite dev server and launch the Electron app.
 
 ### Building
 
-To build the application for production:
+To build the application for production locally:
 
 ```bash
 npm run build
 npm start
 ```
+
+### Building for Distribution (Installers)
+
+To create the installers for distribution (Windows .exe, Linux .AppImage):
+
+```bash
+npm run dist
+```
+
+The output files will be located in the `release/` directory:
+- **Windows:** `PingHermano Setup <version>.exe`
+- **Linux:** `PingHermano-<version>.AppImage`
