@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="260" viewBox="0 0 1200 260" role="img" aria-label="Post Hermano">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f1115"/><stop offset="1" stop-color="#1e1b4b"/>
+    </linearGradient>
+    <linearGradient id="ac" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#818cf8"/><stop offset="1" stop-color="#6366f1"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="260" rx="20" fill="url(#bg)"/>
+  <g transform="translate(120 130)">
+    <circle r="62" fill="url(#ac)"/>
+    <circle r="22" fill="#fff"/>
+    <circle r="86" fill="none" stroke="#6366f1" stroke-opacity=".45" stroke-width="3"/>
+    <circle r="108" fill="none" stroke="#6366f1" stroke-opacity=".2" stroke-width="3"/>
+  </g>
+  <text x="270" y="135" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="72" font-weight="700" fill="#e5e7ee">Post Hermano</text>
+  <text x="272" y="182" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="26" fill="#a5b4fc">Cliente de API leve, rápido e open source</text>
+  <g font-family="Inter,Segoe UI,Arial,sans-serif" font-size="18" fill="#c7d2fe">
+    <rect x="272" y="204" width="86" height="32" rx="16" fill="#6366f1" fill-opacity=".25"/><text x="289" y="226">Tauri 2</text>
+    <rect x="370" y="204" width="76" height="32" rx="16" fill="#6366f1" fill-opacity=".25"/><text x="388" y="226">Rust</text>
+    <rect x="458" y="204" width="86" height="32" rx="16" fill="#6366f1" fill-opacity=".25"/><text x="476" y="226">React</text>
+  </g>
+</svg>
