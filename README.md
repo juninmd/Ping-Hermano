@@ -1,4 +1,4 @@
-# PingHermano
+# Post Hermano
 
 Cliente de API leve e rápido (estilo Postman), construído com **Tauri 2** (Rust) + **React** + **MobX**.
 

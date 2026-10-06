@@ -53,7 +53,7 @@ pub struct Requests {
 impl Default for Requests {
     fn default() -> Self {
         let client = Client::builder()
-            .user_agent("PingHermano/2.0")
+            .user_agent("PostHermano/2.0")
             .connect_timeout(Duration::from_secs(30))
             .timeout(Duration::from_secs(120))
             .build()
