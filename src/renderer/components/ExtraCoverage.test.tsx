@@ -11,7 +11,7 @@ import { runInAction } from 'mobx';
 const mockMakeRequest = vi.fn();
 const mockGetFilePath = vi.fn();
 
-window.electronAPI = {
+window.pingAPI = {
   makeRequest: mockMakeRequest,
   cancelRequest: vi.fn(),
   getFilePath: mockGetFilePath,

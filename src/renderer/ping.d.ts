@@ -1,4 +1,4 @@
-export interface IElectronAPI {
+export interface IPingAPI {
   makeRequest: (data: any) => Promise<any>;
   cancelRequest: (requestId: string) => Promise<boolean>;
   getFilePath: (file: File) => string;
@@ -6,6 +6,6 @@ export interface IElectronAPI {
 
 declare global {
   interface Window {
-    electronAPI: IElectronAPI;
+    pingAPI: IPingAPI;
   }
 }

@@ -18,8 +18,8 @@ const Overlay = styled.div`
 `;
 
 const ModalContent = styled.div`
-  background-color: #252526;
-  border: 1px solid #3e3e42;
+  background-color: #14171c;
+  border: 1px solid #262b34;
   width: 600px;
   height: 400px;
   display: flex;
@@ -29,7 +29,7 @@ const ModalContent = styled.div`
 
 const Header = styled.div`
   padding: 10px 15px;
-  border-bottom: 1px solid #3e3e42;
+  border-bottom: 1px solid #262b34;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -40,7 +40,7 @@ const Header = styled.div`
 const CloseBtn = styled.button`
   background: none;
   border: none;
-  color: #cccccc;
+  color: #d4d8e1;
   cursor: pointer;
   font-size: 16px;
   &:hover { color: #fff; }
@@ -48,16 +48,16 @@ const CloseBtn = styled.button`
 
 const Tabs = styled.div`
   display: flex;
-  border-bottom: 1px solid #3e3e42;
-  background-color: #2d2d2d;
+  border-bottom: 1px solid #262b34;
+  background-color: #1a1e25;
 `;
 
 const Tab = styled.button<{ $active: boolean }>`
   padding: 10px 20px;
-  background: ${props => props.$active ? '#252526' : 'transparent'};
+  background: ${props => props.$active ? '#14171c' : 'transparent'};
   border: none;
-  border-bottom: 2px solid ${props => props.$active ? '#0078d4' : 'transparent'};
-  color: ${props => props.$active ? '#fff' : '#858585'};
+  border-bottom: 2px solid ${props => props.$active ? '#6366f1' : 'transparent'};
+  color: ${props => props.$active ? '#fff' : '#7d8594'};
   cursor: pointer;
 
   &:hover {
@@ -67,8 +67,8 @@ const Tab = styled.button<{ $active: boolean }>`
 
 const CodeArea = styled.textarea`
   flex: 1;
-  background-color: #1e1e1e;
-  color: #d4d4d4;
+  background-color: #0f1115;
+  color: #e5e7ee;
   border: none;
   padding: 15px;
   font-family: 'Consolas', 'Monaco', monospace;
@@ -79,7 +79,7 @@ const CodeArea = styled.textarea`
 
 const Footer = styled.div`
   padding: 10px 15px;
-  border-top: 1px solid #3e3e42;
+  border-top: 1px solid #262b34;
   display: flex;
   justify-content: flex-end;
   gap: 10px;
@@ -87,12 +87,12 @@ const Footer = styled.div`
 
 const Button = styled.button`
   padding: 6px 12px;
-  background-color: #0078d4;
+  background-color: #6366f1;
   color: white;
-  border: 1px solid #0078d4;
+  border: 1px solid #6366f1;
   border-radius: 4px;
   cursor: pointer;
-  &:hover { background-color: #0063b1; }
+  &:hover { background-color: #4f46e5; }
 `;
 
 interface Props {

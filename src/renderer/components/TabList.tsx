@@ -5,17 +5,17 @@ import { requestStore } from '../stores/RequestStore';
 
 const TabsContainer = styled.div`
   display: flex;
-  background-color: #252526;
+  background-color: #14171c;
   height: 35px;
   overflow-x: auto;
-  border-bottom: 1px solid #3e3e42;
+  border-bottom: 1px solid #262b34;
   flex-shrink: 0;
 
   &::-webkit-scrollbar {
     height: 3px;
   }
   &::-webkit-scrollbar-thumb {
-    background-color: #424242;
+    background-color: #2f3541;
   }
 `;
 
@@ -26,15 +26,15 @@ const TabItem = styled.div<{ $active: boolean; $method: string }>`
   min-width: 100px;
   max-width: 200px;
   height: 100%;
-  background-color: ${props => props.$active ? '#1e1e1e' : '#2d2d2d'};
-  border-right: 1px solid #252526;
+  background-color: ${props => props.$active ? '#0f1115' : '#1a1e25'};
+  border-right: 1px solid #14171c;
   cursor: pointer;
   user-select: none;
-  border-top: ${props => props.$active ? '1px solid #0078d4' : '1px solid transparent'};
-  color: ${props => props.$active ? '#ffffff' : '#969696'};
+  border-top: ${props => props.$active ? '1px solid #6366f1' : '1px solid transparent'};
+  color: ${props => props.$active ? '#ffffff' : '#8b93a1'};
 
   &:hover {
-    background-color: ${props => props.$active ? '#1e1e1e' : '#2d2d2d'};
+    background-color: ${props => props.$active ? '#0f1115' : '#1a1e25'};
     color: #ffffff;
   }
 
@@ -50,7 +50,7 @@ const TabItem = styled.div<{ $active: boolean; $method: string }>`
             case 'POST': return '#49cc90';
             case 'PUT': return '#fca130';
             case 'DELETE': return '#f93e3e';
-            default: return '#969696';
+            default: return '#8b93a1';
         }
     }};
   }
@@ -76,7 +76,7 @@ const CloseButton = styled.div`
   opacity: 0.7;
 
   &:hover {
-    background-color: #4b4b4b;
+    background-color: #2f3541;
     opacity: 1;
   }
 `;
@@ -93,7 +93,7 @@ const DuplicateButton = styled.div`
   opacity: 0.7;
 
   &:hover {
-    background-color: #4b4b4b;
+    background-color: #2f3541;
     opacity: 1;
   }
 `;
@@ -105,12 +105,12 @@ const AddButton = styled.div`
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #969696;
+  color: #8b93a1;
   font-size: 20px;
 
   &:hover {
     color: #ffffff;
-    background-color: #3e3e42;
+    background-color: #262b34;
   }
 `;
 

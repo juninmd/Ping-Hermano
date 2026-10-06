@@ -7,7 +7,7 @@ interface ResizeHandleProps {
 }
 
 const Handle = styled.div<{ $direction: 'horizontal' | 'vertical' }>`
-  background-color: #3e3e42;
+  background-color: #262b34;
   position: relative;
   z-index: 10;
   transition: background-color 0.2s;
@@ -23,7 +23,7 @@ const Handle = styled.div<{ $direction: 'horizontal' | 'vertical' }>`
   `}
 
   &:hover {
-    background-color: #0078d4;
+    background-color: #6366f1;
   }
 `;
 

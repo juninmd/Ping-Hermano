@@ -246,10 +246,15 @@ export class RequestStore {
         this.addTab();
     }
 
-    // Auto-save tabs on change
+    // Auto-save tabs on change (debounced: avoids serializing on every keystroke)
     autorun(() => {
         this.saveTabs();
-    });
+    }, { delay: 300 });
+
+    // Flush pending changes when the window closes
+    if (typeof window !== 'undefined') {
+        window.addEventListener('beforeunload', () => this.saveTabs());
+    }
   }
 
   // Tab Management
@@ -696,8 +701,8 @@ export class RequestStore {
       const tab = this.activeTab;
       if (tab.loading && tab.activeRequestId) {
           try {
-              if (window.electronAPI) {
-                  await window.electronAPI.cancelRequest(tab.activeRequestId);
+              if (window.pingAPI) {
+                  await window.pingAPI.cancelRequest(tab.activeRequestId);
               }
           } catch (e) {
               console.error("Failed to cancel", e);
@@ -761,7 +766,7 @@ export class RequestStore {
           }
       }
 
-      const result = await window.electronAPI.makeRequest({
+      const result = await window.pingAPI.makeRequest({
         url: finalUrl,
         method: tab.method,
         headers: validHeaders,

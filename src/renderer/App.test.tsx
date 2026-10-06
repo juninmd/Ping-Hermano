@@ -5,9 +5,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import App from './App';
 import { requestStore } from './stores/RequestStore';
 
-// Mock window.electronAPI
+// Mock window.pingAPI
 const mockMakeRequest = vi.fn();
-Object.defineProperty(window, 'electronAPI', {
+Object.defineProperty(window, 'pingAPI', {
   value: {
     makeRequest: mockMakeRequest
   },

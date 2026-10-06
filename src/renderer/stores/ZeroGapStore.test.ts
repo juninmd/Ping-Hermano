@@ -4,9 +4,9 @@ import { runInAction, configure } from 'mobx';
 
 configure({ enforceActions: "never" });
 
-// Mock electronAPI
+// Mock pingAPI
 const mockMakeRequest = vi.fn();
-Object.defineProperty(window, 'electronAPI', {
+Object.defineProperty(window, 'pingAPI', {
   value: {
     makeRequest: mockMakeRequest,
     cancelRequest: vi.fn()
@@ -111,7 +111,7 @@ describe('ZeroGapStore', () => {
 
     it('should handle request ID mismatch (cancelled/superseded)', async () => {
         // Mock success but delayed
-        vi.spyOn(window.electronAPI, 'makeRequest').mockImplementation(async () => {
+        vi.spyOn(window.pingAPI, 'makeRequest').mockImplementation(async () => {
             await new Promise(resolve => setTimeout(resolve, 10));
             return { status: 200, statusText: 'OK', data: '', headers: {} };
         });

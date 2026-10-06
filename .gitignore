@@ -213,3 +213,5 @@ ModelManifest.xml
 dist/
 vite.log
 coverage/
+src-tauri/target/
+src-tauri/gen/

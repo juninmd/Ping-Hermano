@@ -11,9 +11,9 @@ describe('RequestStore Gap Coverage', () => {
             requestStore.auth = { type: 'none' };
         });
 
-        // Mock electronAPI
-        if (!window.electronAPI) {
-            window.electronAPI = {
+        // Mock pingAPI
+        if (!window.pingAPI) {
+            window.pingAPI = {
                 makeRequest: vi.fn().mockResolvedValue({}),
                 cancelRequest: vi.fn(),
                 getFilePath: vi.fn()
@@ -64,7 +64,7 @@ describe('RequestStore Gap Coverage', () => {
 
         await requestStore.sendRequest();
 
-        expect(window.electronAPI.makeRequest).toHaveBeenCalledWith(expect.objectContaining({
+        expect(window.pingAPI.makeRequest).toHaveBeenCalledWith(expect.objectContaining({
             url: 'http://api.com/resource?api_key=12345'
         }));
     });
@@ -80,7 +80,7 @@ describe('RequestStore Gap Coverage', () => {
 
         await requestStore.sendRequest();
 
-        expect(window.electronAPI.makeRequest).toHaveBeenCalledWith(expect.objectContaining({
+        expect(window.pingAPI.makeRequest).toHaveBeenCalledWith(expect.objectContaining({
             url: 'http://api.com/resource?q=test&api_key=12345'
         }));
     });
@@ -96,7 +96,7 @@ describe('RequestStore Gap Coverage', () => {
 
         await requestStore.sendRequest();
 
-        expect(window.electronAPI.makeRequest).toHaveBeenCalledWith(expect.objectContaining({
+        expect(window.pingAPI.makeRequest).toHaveBeenCalledWith(expect.objectContaining({
             url: 'http://api.com',
             headers: [] // No header added
         }));
@@ -114,7 +114,7 @@ describe('RequestStore Gap Coverage', () => {
         await requestStore.sendRequest();
 
         // Should proceed without error and not add anything
-        expect(window.electronAPI.makeRequest).toHaveBeenCalledWith(expect.objectContaining({
+        expect(window.pingAPI.makeRequest).toHaveBeenCalledWith(expect.objectContaining({
             url: 'http://api.com'
         }));
     });

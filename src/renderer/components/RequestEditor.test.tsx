@@ -28,14 +28,14 @@ describe('RequestEditor', () => {
         });
         vi.restoreAllMocks();
 
-        // Setup default mock for electronAPI
-        if (!window.electronAPI) {
-            window.electronAPI = {
+        // Setup default mock for pingAPI
+        if (!window.pingAPI) {
+            window.pingAPI = {
                 makeRequest: vi.fn(),
             } as any;
         }
-        (window.electronAPI.makeRequest as any).mockReset();
-        (window.electronAPI.makeRequest as any).mockResolvedValue({
+        (window.pingAPI.makeRequest as any).mockReset();
+        (window.pingAPI.makeRequest as any).mockResolvedValue({
             data: 'test',
             status: 200,
             statusText: 'OK',
@@ -50,7 +50,7 @@ describe('RequestEditor', () => {
     it('should handle file upload in form-data', async () => {
         const user = userEvent.setup();
         // Mock getFilePath
-        (window.electronAPI as any).getFilePath = vi.fn().mockReturnValue('/path/to/file.png');
+        (window.pingAPI as any).getFilePath = vi.fn().mockReturnValue('/path/to/file.png');
 
         const { rerender, container } = render(<RequestEditor />);
         fireEvent.click(screen.getByText('Body'));
@@ -76,10 +76,10 @@ describe('RequestEditor', () => {
         expect(requestStore.bodyFormData[0].value).toBe('chucknorris.png');
     });
 
-    it('should fallback to file.name if electronAPI is missing', async () => {
+    it('should fallback to file.name if pingAPI is missing', async () => {
         const user = userEvent.setup();
-        const originalAPI = window.electronAPI;
-        delete (window as any).electronAPI;
+        const originalAPI = window.pingAPI;
+        delete (window as any).pingAPI;
 
         const { rerender, container } = render(<RequestEditor />);
         fireEvent.click(screen.getByText('Body'));
@@ -97,7 +97,7 @@ describe('RequestEditor', () => {
 
         expect(requestStore.bodyFormData[0].src).toBe('chucknorris.png');
 
-        window.electronAPI = originalAPI;
+        window.pingAPI = originalAPI;
     });
 
     it('should render input fields', () => {
@@ -120,7 +120,7 @@ describe('RequestEditor', () => {
         expect(requestStore.url).toBe('http://example.com');
     });
 
-    it('should call sendRequest (and thus electronAPI) when Send is clicked', async () => {
+    it('should call sendRequest (and thus pingAPI) when Send is clicked', async () => {
         runInAction(() => {
             requestStore.url = 'http://test.com';
         });
@@ -132,7 +132,7 @@ describe('RequestEditor', () => {
             fireEvent.click(button);
         });
 
-        expect(window.electronAPI.makeRequest).toHaveBeenCalled();
+        expect(window.pingAPI.makeRequest).toHaveBeenCalled();
     });
 
     it('should show cancel button when loading', () => {
@@ -327,7 +327,7 @@ describe('RequestEditor', () => {
         await act(async () => {
              fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
         });
-        expect(window.electronAPI.makeRequest).toHaveBeenCalled();
+        expect(window.pingAPI.makeRequest).toHaveBeenCalled();
     });
 
     it('should edit form-data body', () => {
