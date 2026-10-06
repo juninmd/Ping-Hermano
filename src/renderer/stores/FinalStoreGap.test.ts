@@ -71,8 +71,8 @@ describe('RequestStore Final Gap', () => {
             store.activeTab.activeRequestId = 'test-req-id';
         });
 
-        // Mock window.electronAPI.cancelRequest to throw
-        window.electronAPI = {
+        // Mock window.pingAPI.cancelRequest to throw
+        window.pingAPI = {
             cancelRequest: vi.fn().mockRejectedValue(new Error('Cancel Failed')),
             makeRequest: vi.fn(),
             getFilePath: vi.fn(),

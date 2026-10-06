@@ -701,8 +701,8 @@ export class RequestStore {
       const tab = this.activeTab;
       if (tab.loading && tab.activeRequestId) {
           try {
-              if (window.electronAPI) {
-                  await window.electronAPI.cancelRequest(tab.activeRequestId);
+              if (window.pingAPI) {
+                  await window.pingAPI.cancelRequest(tab.activeRequestId);
               }
           } catch (e) {
               console.error("Failed to cancel", e);
@@ -766,7 +766,7 @@ export class RequestStore {
           }
       }
 
-      const result = await window.electronAPI.makeRequest({
+      const result = await window.pingAPI.makeRequest({
         url: finalUrl,
         method: tab.method,
         headers: validHeaders,

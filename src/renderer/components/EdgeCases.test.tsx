@@ -7,8 +7,8 @@ import { RequestEditor } from './RequestEditor';
 import { requestStore } from '../stores/RequestStore';
 import { runInAction } from 'mobx';
 
-// Mock electronAPI
-window.electronAPI = {
+// Mock pingAPI
+window.pingAPI = {
   makeRequest: vi.fn(),
   getFilePath: vi.fn((f) => f.name),
   cancelRequest: vi.fn()
@@ -181,9 +181,9 @@ describe('Edge Cases', () => {
   });
 
   test('RequestStore: cancelRequest should handle errors', async () => {
-    // Mock electronAPI.cancelRequest to throw
-    const originalCancel = window.electronAPI.cancelRequest;
-    (window.electronAPI.cancelRequest as any) = vi.fn().mockRejectedValue(new Error('Cancel failed'));
+    // Mock pingAPI.cancelRequest to throw
+    const originalCancel = window.pingAPI.cancelRequest;
+    (window.pingAPI.cancelRequest as any) = vi.fn().mockRejectedValue(new Error('Cancel failed'));
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     runInAction(() => {
@@ -197,7 +197,7 @@ describe('Edge Cases', () => {
     expect(requestStore.loading).toBe(false);
     expect(requestStore.response.statusText).toBe('Cancelled');
 
-    (window.electronAPI.cancelRequest as any) = originalCancel;
+    (window.pingAPI.cancelRequest as any) = originalCancel;
     consoleSpy.mockRestore();
   });
 });

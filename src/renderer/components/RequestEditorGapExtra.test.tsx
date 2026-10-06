@@ -6,23 +6,23 @@ import { requestStore } from '../stores/RequestStore';
 import { runInAction } from 'mobx';
 
 describe('RequestEditor Gap Extra Tests', () => {
-    const originalElectronAPI = window.electronAPI;
+    const originalPingAPI = window.pingAPI;
 
     beforeEach(() => {
         runInAction(() => {
             requestStore.bodyType = 'form-data';
             requestStore.bodyFormData = [{ key: 'file', value: '', type: 'file' }];
         });
-        // Remove electronAPI
+        // Remove pingAPI
         // @ts-ignore
-        delete window.electronAPI;
+        delete window.pingAPI;
     });
 
     afterEach(() => {
-        window.electronAPI = originalElectronAPI;
+        window.pingAPI = originalPingAPI;
     });
 
-    it('should use file name as path when electronAPI is not available', () => {
+    it('should use file name as path when pingAPI is not available', () => {
         render(<RequestEditor />);
 
         // Ensure we are in Body -> Form Data

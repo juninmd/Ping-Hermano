@@ -7,37 +7,37 @@ import { EnvironmentModal } from './EnvironmentModal';
 const SidebarContainer = styled.div`
   width: 250px;
   min-width: 200px;
-  background-color: #252526;
-  border-right: 1px solid #3e3e42;
+  background-color: #14171c;
+  border-right: 1px solid #262b34;
   display: flex;
   flex-direction: column;
 `;
 
 const SidebarHeader = styled.div`
   padding: 0;
-  border-bottom: 1px solid #3e3e42;
+  border-bottom: 1px solid #262b34;
   display: flex;
 `;
 
 const TabButton = styled.button<{ $active: boolean }>`
   flex: 1;
-  background-color: ${props => props.$active ? '#252526' : '#2d2d2d'};
+  background-color: ${props => props.$active ? '#14171c' : '#1a1e25'};
   border: none;
-  border-bottom: 2px solid ${props => props.$active ? '#0078d4' : 'transparent'};
-  color: ${props => props.$active ? '#fff' : '#858585'};
+  border-bottom: 2px solid ${props => props.$active ? '#6366f1' : 'transparent'};
+  color: ${props => props.$active ? '#fff' : '#7d8594'};
   padding: 10px;
   cursor: pointer;
   font-weight: 500;
 
   &:hover {
-    background-color: #252526;
+    background-color: #14171c;
     color: #fff;
   }
 `;
 
 const HeaderActions = styled.div`
   padding: 10px 15px;
-  border-bottom: 1px solid #3e3e42;
+  border-bottom: 1px solid #262b34;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -46,7 +46,7 @@ const HeaderActions = styled.div`
     margin: 0;
     font-size: 14px;
     text-transform: uppercase;
-    color: #858585;
+    color: #7d8594;
   }
 `;
 
@@ -78,12 +78,12 @@ const ItemContainer = styled.div`
   font-size: 13px;
 
   &:hover {
-    background-color: #2a2d2e;
+    background-color: #20252e;
   }
 
   &.active {
-    background-color: #37373d;
-    border-left: 3px solid #0078d4;
+    background-color: #20252e;
+    border-left: 3px solid #6366f1;
     padding-left: 12px;
   }
 `;
@@ -97,12 +97,12 @@ const MethodBadge = styled.span<{ method: string }>`
   text-align: center;
   color: ${props => {
     switch (props.method.toLowerCase()) {
-      case 'get': return '#6a9955';
-      case 'post': return '#cca700';
-      case 'put': return '#0078d4';
-      case 'delete': return '#f48771';
-      case 'patch': return '#b4009e';
-      default: return '#cccccc';
+      case 'get': return '#4ade80';
+      case 'post': return '#fbbf24';
+      case 'put': return '#6366f1';
+      case 'delete': return '#f87171';
+      case 'patch': return '#c084fc';
+      default: return '#d4d8e1';
     }
   }};
 `;
@@ -111,14 +111,14 @@ const TextTruncate = styled.span`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #cccccc;
+  color: #d4d8e1;
   flex: 1;
 `;
 
 const EmptyState = styled.div`
   padding: 20px;
   text-align: center;
-  color: #858585;
+  color: #7d8594;
   font-style: italic;
 `;
 
@@ -133,11 +133,11 @@ const CollectionHeader = styled.div`
   align-items: center;
   font-weight: bold;
   font-size: 13px;
-  background-color: #2d2d2d;
-  color: #e0e0e0;
+  background-color: #1a1e25;
+  color: #e5e7ee;
 
   &:hover {
-    background-color: #383838;
+    background-color: #232832;
   }
 `;
 
@@ -146,7 +146,7 @@ const RequestInCollection = styled(ItemContainer)`
   border-left: 3px solid transparent;
 
   &:hover {
-    border-left-color: #0078d4;
+    border-left-color: #6366f1;
   }
 `;
 

@@ -1,72 +1,45 @@
-# PingHermano - Simple Postman Clone
+# PingHermano
 
-PingHermano is an Electron-based application that serves as a simple clone of Postman. It allows you to make HTTP requests, view responses, and manage your request history.
+Cliente de API leve e rápido (estilo Postman), construído com **Tauri 2** (Rust) + **React** + **MobX**.
 
-## Features
+![Tela principal](docs/screenshots/main.png)
+![Resposta](docs/screenshots/response.png)
 
-- **Request Methods**: Supports GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS.
-- **Request Configuration**:
-    - **URL**: Bidirectional synchronization with Query Params.
-    - **Headers**: Key-value pair editing.
-    - **Body**: Raw text/JSON support.
-- **Response Viewer**:
-    - View status code, time, and size.
-    - View response body (pretty-printed JSON) and headers.
-- **History**: Automatically saves request history to local storage.
+## Recursos
 
-## Tech Stack
+- Abas de requisição persistentes, histórico, coleções e ambientes (`{{variavel}}`)
+- Métodos HTTP, headers, query params, body (texto/JSON, form-data com arquivos, urlencoded)
+- Autenticação (Bearer, Basic, API Key)
+- Scripts de pre-request e testes com API `pm` (`pm.test`, `pm.expect`, `pm.environment`, `pm.response`)
+- Visualização da resposta (body, preview, headers, testes), copiar/baixar
+- Gerador de código (cURL e fetch), import/export de coleções e ambientes
+- Cancelamento de requisições em andamento
 
-- **Electron**: For cross-platform desktop application.
-- **React**: For the user interface.
-- **Vite**: For fast build and development.
-- **TypeScript**: For type safety.
-- **MobX**: For state management.
-- **Styled Components**: For styling.
-- **Postman Runtime**: Uses actual Postman libraries (`postman-runtime`, `postman-collection`) for request execution.
+## Por que Tauri
 
-## Getting Started
+Instalador pequeno e baixo consumo de memória: o app usa a webview do sistema e um backend Rust
+(`reqwest`, com pool de conexões, gzip/brotli e timeouts), sem Chromium/Node embutidos.
 
-### Prerequisites
+## Desenvolvimento
 
-- Node.js (v16 or higher recommended)
-- npm
-
-### Installation
-
-1. Clone the repository.
-2. Install dependencies:
+Requisitos: Node 20+, Rust estável e as [dependências do Tauri](https://tauri.app/start/prerequisites/).
 
 ```bash
 npm install
+npm run tauri:dev     # app desktop com hot reload
+npm run dev           # somente a UI no navegador (sem backend nativo)
+npm test              # testes (vitest)
+npm run tauri:build   # gera o instalador
 ```
 
-### Running the Application
+## Estrutura
 
-To run the application in development mode (with hot-reload for Renderer):
-
-```bash
-npm run dev
+```
+src/renderer/        UI React (componentes, store MobX, utilitários)
+src/renderer/api/    ponte com o backend (invoke) e sandbox de scripts `pm`
+src-tauri/src/http.rs  execução HTTP e cancelamento (Rust)
 ```
 
-This will start the Vite dev server and launch the Electron app.
+## Licença
 
-### Building
-
-To build the application for production locally:
-
-```bash
-npm run build
-npm start
-```
-
-### Building for Distribution (Installers)
-
-To create the installers for distribution (Windows .exe, Linux .AppImage):
-
-```bash
-npm run dist
-```
-
-The output files will be located in the `release/` directory:
-- **Windows:** `PingHermano Setup <version>.exe`
-- **Linux:** `PingHermano-<version>.AppImage`
+ISC

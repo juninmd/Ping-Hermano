@@ -17,12 +17,12 @@ const ViewerContainer = styled.div<{ $empty?: boolean }>`
 `;
 
 const PlaceholderText = styled.div`
-    color: #858585;
+    color: #7d8594;
     font-size: 16px;
 `;
 
 const Loader = styled.div`
-    color: #0078d4;
+    color: #6366f1;
 `;
 
 const ResponseMeta = styled.div`
@@ -35,21 +35,21 @@ const ResponseMeta = styled.div`
 const StatusValue = styled.span<{ status: number }>`
     font-weight: bold;
     color: ${props => {
-        if (props.status >= 200 && props.status < 300) return '#6a9955';
-        if (props.status >= 300 && props.status < 400) return '#cca700';
-        if (props.status >= 400 && props.status < 600) return '#f48771';
+        if (props.status >= 200 && props.status < 300) return '#4ade80';
+        if (props.status >= 300 && props.status < 400) return '#fbbf24';
+        if (props.status >= 400 && props.status < 600) return '#f87171';
         return 'inherit';
     }};
 `;
 
 const MetaInfo = styled.div`
-    color: #858585;
+    color: #7d8594;
 `;
 
 const Tabs = styled.div`
   display: flex;
   gap: 20px;
-  border-bottom: 1px solid #3e3e42;
+  border-bottom: 1px solid #262b34;
   margin-top: 10px;
   align-items: center;
 `;
@@ -60,29 +60,29 @@ const Spacer = styled.div`
 
 const ActionButton = styled.button`
   padding: 4px 12px;
-  background-color: #3c3c3c;
-  color: #cccccc;
-  border: 1px solid #3e3e42;
+  background-color: #1d222a;
+  color: #d4d8e1;
+  border: 1px solid #262b34;
   cursor: pointer;
   border-radius: 4px;
   font-size: 12px;
   margin-bottom: 5px;
 
   &:hover {
-    background-color: #4c4c4c;
+    background-color: #2f3541;
   }
 `;
 
 const Tab = styled.div<{ $active?: boolean }>`
   padding: 8px 0;
   cursor: pointer;
-  color: ${props => props.$active ? '#cccccc' : '#858585'};
+  color: ${props => props.$active ? '#d4d8e1' : '#7d8594'};
   font-size: 13px;
   position: relative;
   font-weight: ${props => props.$active ? '500' : 'normal'};
 
   &:hover {
-    color: #cccccc;
+    color: #d4d8e1;
   }
 
   ${props => props.$active && `
@@ -93,7 +93,7 @@ const Tab = styled.div<{ $active?: boolean }>`
       left: 0;
       width: 100%;
       height: 2px;
-      background-color: #f89d36;
+      background-color: #818cf8;
     }
   `}
 `;
@@ -109,13 +109,13 @@ const TabContent = styled.div`
 const HeadersGrid = styled.div`
     display: flex;
     flex-direction: column;
-    border: 1px solid #3e3e42;
+    border: 1px solid #262b34;
     border-radius: 4px;
 `;
 
 const HeaderRow = styled.div`
     display: flex;
-    border-bottom: 1px solid #3e3e42;
+    border-bottom: 1px solid #262b34;
     &:last-child {
         border-bottom: none;
     }
@@ -126,10 +126,10 @@ const ReadOnlyInput = styled.input`
     padding: 8px;
     background: transparent;
     border: none;
-    color: #cccccc;
-    border-right: 1px solid #3e3e42;
+    color: #d4d8e1;
+    border-right: 1px solid #262b34;
     outline: none;
-    background-color: #252526;
+    background-color: #14171c;
 `;
 
 const TestResultsList = styled.div`
@@ -145,7 +145,7 @@ const TestResultItem = styled.div<{ $passed: boolean }>`
   justify-content: space-between;
   padding: 8px;
   background-color: ${props => props.$passed ? 'rgba(106, 153, 85, 0.2)' : 'rgba(244, 135, 113, 0.2)'};
-  border-left: 3px solid ${props => props.$passed ? '#6a9955' : '#f48771'};
+  border-left: 3px solid ${props => props.$passed ? '#4ade80' : '#f87171'};
   border-radius: 4px;
 `;
 
@@ -153,8 +153,8 @@ const ResponseBody = styled.textarea`
     width: 100%;
     height: 100%;
     flex: 1;
-    background-color: #1e1e1e;
-    color: #d4d4d4;
+    background-color: #0f1115;
+    color: #e5e7ee;
     border: none;
     padding: 10px;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
@@ -294,7 +294,7 @@ export const ResponseViewer = observer(() => {
         )}
         {activeTab === 'tests' && (
             <TestResultsList>
-                {testResults.length === 0 && <div style={{ color: '#858585' }}>No tests executed</div>}
+                {testResults.length === 0 && <div style={{ color: '#7d8594' }}>No tests executed</div>}
                 {testResults.map((test: any, index: number) => (
                     <TestResultItem key={index} $passed={test.passed}>
                         <span>{test.name}</span>

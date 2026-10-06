@@ -8,13 +8,14 @@ import { ResizeHandle } from './components/ResizeHandle';
 
 const GlobalStyle = createGlobalStyle`
   :root {
-    font-family: 'Segoe UI', Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    font-family: Inter, 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 14px;
     line-height: 1.5;
     font-weight: 400;
 
     color-scheme: dark;
-    color: #e0e0e0;
-    background-color: #1e1e1e;
+    color: #e5e7ee;
+    background-color: #0f1115;
 
     font-synthesis: none;
     text-rendering: optimizeLegibility;
@@ -27,14 +28,45 @@ const GlobalStyle = createGlobalStyle`
     display: flex;
     min-width: 800px;
     min-height: 100vh;
-    background-color: #1e1e1e;
-    color: #cccccc;
+    background-color: #0f1115;
+    color: #d4d8e1;
     overflow: hidden;
   }
 
   #root {
     width: 100%;
     height: 100vh;
+  }
+
+  * { box-sizing: border-box; }
+
+  button, input, select, textarea {
+    font-family: inherit;
+    transition: background-color .15s, border-color .15s, color .15s, box-shadow .15s;
+  }
+
+  button { cursor: pointer; border-radius: 6px; }
+  input, select, textarea { border-radius: 6px; }
+
+  input:focus, select:focus, textarea:focus, button:focus-visible {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, .25);
+  }
+
+  textarea, pre, code { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; }
+
+  ::selection { background: rgba(99, 102, 241, .4); }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: #2f3541; border-radius: 6px; border: 2px solid #0f1115;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: #3d4452; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
   }
 `;
 
@@ -49,7 +81,7 @@ const MainContent = styled.div`
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background-color: #1e1e1e;
+  background-color: #0f1115;
   min-width: 0; /* Prevent flex overflow */
 `;
 

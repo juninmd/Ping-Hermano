@@ -5,7 +5,7 @@ import { requestStore } from './RequestStore';
 // Mock electron API
 const mockMakeRequest = vi.fn();
 
-window.electronAPI = {
+window.pingAPI = {
   makeRequest: mockMakeRequest,
   cancelRequest: vi.fn(),
   getFilePath: vi.fn(),

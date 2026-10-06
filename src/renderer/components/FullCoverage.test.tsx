@@ -12,9 +12,9 @@ import * as codeGenerator from '../utils/codeGenerator';
 // Configure MobX
 configure({ enforceActions: "never" });
 
-// Mock window.electronAPI
+// Mock window.pingAPI
 const mockMakeRequest = vi.fn();
-Object.defineProperty(window, 'electronAPI', {
+Object.defineProperty(window, 'pingAPI', {
   value: {
     makeRequest: mockMakeRequest
   },

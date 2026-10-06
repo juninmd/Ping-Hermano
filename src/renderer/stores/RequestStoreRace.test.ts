@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { RequestStore } from './RequestStore';
 
 const mockMakeRequest = vi.fn();
-window.electronAPI = {
+window.pingAPI = {
   makeRequest: mockMakeRequest,
 } as any;
 

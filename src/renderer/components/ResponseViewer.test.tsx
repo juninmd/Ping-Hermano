@@ -120,10 +120,10 @@ describe('ResponseViewer', () => {
             unmount();
         };
 
-        checkColor(200, '#6a9955');
-        checkColor(301, '#cca700');
-        checkColor(404, '#f48771');
-        checkColor(500, '#f48771');
+        checkColor(200, '#4ade80');
+        checkColor(301, '#fbbf24');
+        checkColor(404, '#f87171');
+        checkColor(500, '#f87171');
 
         runInAction(() => {
             requestStore.response = { status: 100, statusText: 'Continue', data: '', headers: {} };

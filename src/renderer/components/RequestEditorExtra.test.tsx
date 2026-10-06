@@ -30,7 +30,7 @@ describe('RequestEditor Extra Coverage', () => {
     afterEach(() => {
         window.prompt = originalPrompt;
         window.alert = originalAlert;
-        delete (window as any).electronAPI;
+        delete (window as any).pingAPI;
     });
 
     it('should save to selected collection when multiple exist', () => {
@@ -77,9 +77,9 @@ describe('RequestEditor Extra Coverage', () => {
         expect(requestStore.collections[1].requests).toHaveLength(0);
     });
 
-    it('should use electronAPI.getFilePath if available for file input', () => {
-        // Mock electronAPI
-        (window as any).electronAPI = {
+    it('should use pingAPI.getFilePath if available for file input', () => {
+        // Mock pingAPI
+        (window as any).pingAPI = {
             getFilePath: vi.fn().mockReturnValue('/path/to/file.txt')
         };
 
@@ -96,7 +96,7 @@ describe('RequestEditor Extra Coverage', () => {
 
         fireEvent.change(fileInput!, { target: { files: [file] } });
 
-        expect((window as any).electronAPI.getFilePath).toHaveBeenCalledWith(file);
+        expect((window as any).pingAPI.getFilePath).toHaveBeenCalledWith(file);
         expect(requestStore.bodyFormData[0].src).toBe('/path/to/file.txt');
         expect(requestStore.bodyFormData[0].value).toBe('file.txt');
     });

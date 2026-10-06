@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { RequestStore, Header, QueryParam, Auth, HistoryItem } from './RequestStore';
 
-// Mock electronAPI
+// Mock pingAPI
 const mockMakeRequest = vi.fn();
-window.electronAPI = {
+window.pingAPI = {
   makeRequest: mockMakeRequest,
 } as any;
 
