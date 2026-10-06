@@ -163,6 +163,33 @@ const ResponseBody = styled.textarea`
     outline: none;
 `;
 
+const computeFormat = (content: any): string => {
+  if (content === null || content === undefined) return '';
+  if (typeof content === 'object') {
+    try {
+      return JSON.stringify(content, null, 2);
+    } catch {
+      return content.toString();
+    }
+  }
+  try {
+    return JSON.stringify(JSON.parse(content), null, 2);
+  } catch {
+    return content;
+  }
+};
+
+// Single-entry cache: re-renders (tab switches, resize) don't re-format large bodies
+let lastRaw: any;
+let lastFormatted = '';
+const formatBody = (content: any): string => {
+  if (content !== lastRaw || lastFormatted === '' ) {
+    lastFormatted = computeFormat(content);
+    lastRaw = content;
+  }
+  return lastFormatted;
+};
+
 export const ResponseViewer = observer(() => {
   const { response, loading, error, responseMetrics } = requestStore;
   const [activeTab, setActiveTab] = useState<'body' | 'headers' | 'preview' | 'tests'>('body');
@@ -198,23 +225,6 @@ export const ResponseViewer = observer(() => {
   const testResults = response.testResults || [];
   const passedCount = testResults.filter((t: any) => t.passed).length;
   const totalTests = testResults.length;
-
-  const formatBody = (content: any) => {
-    if (content === null || content === undefined) return '';
-    if (typeof content === 'object') {
-      try {
-        return JSON.stringify(content, null, 2);
-      } catch {
-        return content.toString();
-      }
-    }
-    try {
-        const json = JSON.parse(content);
-        return JSON.stringify(json, null, 2);
-    } catch {
-        return content;
-    }
-  }
 
   const handleCopy = () => {
     const text = formatBody(data);

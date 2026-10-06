@@ -15,6 +15,12 @@ function createWindow() {
     },
   });
 
+  // Block navigation and popups away from the app
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  win.webContents.on('will-navigate', (e, url) => {
+    if (!url.startsWith('http://localhost:5173') && !url.startsWith('file://')) e.preventDefault();
+  });
+
   if (isDev) {
     win.loadURL('http://localhost:5173');
     win.webContents.openDevTools();
