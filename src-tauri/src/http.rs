@@ -1,6 +1,6 @@
 //! HTTP execution backend: one reqwest client, cancellable in-flight requests.
 
-use std::{collections::HashMap, sync::Mutex, time::Duration};
+use std::{collections::HashMap, sync::Mutex, time::{Duration, Instant}};
 
 use reqwest::{multipart, Client, Method};
 use serde::{Deserialize, Serialize};
@@ -37,7 +37,15 @@ pub struct RequestData {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct Timing {
+    ttfb_ms: u64,
+    download_ms: u64,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ResponseData {
+    timing: Timing,
     status: u16,
     status_text: String,
     headers: HashMap<String, String>,
@@ -96,7 +104,9 @@ async fn execute(client: &Client, r: RequestData) -> Result<ResponseData, String
         },
     };
 
+    let started = Instant::now();
     let res = req.send().await.map_err(|e| e.to_string())?;
+    let ttfb_ms = started.elapsed().as_millis() as u64;
     let status = res.status();
     let headers = res
         .headers()
@@ -104,7 +114,9 @@ async fn execute(client: &Client, r: RequestData) -> Result<ResponseData, String
         .map(|(k, v)| (k.as_str().to_string(), v.to_str().unwrap_or("").to_string()))
         .collect();
     let body = res.text().await.map_err(|e| e.to_string())?;
+    let download_ms = (started.elapsed().as_millis() as u64).saturating_sub(ttfb_ms);
     Ok(ResponseData {
+        timing: Timing { ttfb_ms, download_ms },
         status: status.as_u16(),
         status_text: status.canonical_reason().unwrap_or("").to_string(),
         headers,

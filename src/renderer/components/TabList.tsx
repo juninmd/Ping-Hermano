@@ -5,17 +5,17 @@ import { requestStore } from '../stores/RequestStore';
 
 const TabsContainer = styled.div`
   display: flex;
-  background-color: #14171c;
+  background-color: var(--surface);
   height: 35px;
   overflow-x: auto;
-  border-bottom: 1px solid #262b34;
+  border-bottom: 1px solid var(--line);
   flex-shrink: 0;
 
   &::-webkit-scrollbar {
     height: 3px;
   }
   &::-webkit-scrollbar-thumb {
-    background-color: #2f3541;
+    background-color: var(--line2);
   }
 `;
 
@@ -26,16 +26,18 @@ const TabItem = styled.div<{ $active: boolean; $method: string }>`
   min-width: 100px;
   max-width: 200px;
   height: 100%;
-  background-color: ${props => props.$active ? '#0f1115' : '#1a1e25'};
-  border-right: 1px solid #14171c;
+  background-color: ${props => props.$active ? 'var(--surface3)' : 'transparent'};
+  border-right: 1px solid var(--surface);
   cursor: pointer;
   user-select: none;
-  border-top: ${props => props.$active ? '1px solid #6366f1' : '1px solid transparent'};
-  color: ${props => props.$active ? '#ffffff' : '#8b93a1'};
+  animation: pop .3s cubic-bezier(.3,1.5,.5,1) both;
+  transition: background-color .2s, color .2s, box-shadow .2s;
+  border-top: ${props => props.$active ? '1px solid var(--accent)' : '1px solid transparent'};
+  color: ${props => props.$active ? 'var(--fg-strong)' : 'var(--mute)'};
 
   &:hover {
-    background-color: ${props => props.$active ? '#0f1115' : '#1a1e25'};
-    color: #ffffff;
+    background-color: ${props => props.$active ? 'var(--surface3)' : 'transparent'};
+    color: var(--fg-strong);
   }
 
   /* Method color indicator */
@@ -46,11 +48,11 @@ const TabItem = styled.div<{ $active: boolean; $method: string }>`
     margin-right: 8px;
     color: ${props => {
         switch(props.$method) {
-            case 'GET': return '#61affe';
-            case 'POST': return '#49cc90';
-            case 'PUT': return '#fca130';
-            case 'DELETE': return '#f93e3e';
-            default: return '#8b93a1';
+            case 'GET': return 'var(--get)';
+            case 'POST': return 'var(--post)';
+            case 'PUT': return 'var(--put)';
+            case 'DELETE': return 'var(--delete)';
+            default: return 'var(--mute)';
         }
     }};
   }
@@ -76,7 +78,7 @@ const CloseButton = styled.div`
   opacity: 0.7;
 
   &:hover {
-    background-color: #2f3541;
+    background-color: var(--line2);
     opacity: 1;
   }
 `;
@@ -93,7 +95,7 @@ const DuplicateButton = styled.div`
   opacity: 0.7;
 
   &:hover {
-    background-color: #2f3541;
+    background-color: var(--line2);
     opacity: 1;
   }
 `;
@@ -105,12 +107,12 @@ const AddButton = styled.div`
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #8b93a1;
+  color: var(--mute);
   font-size: 20px;
 
   &:hover {
-    color: #ffffff;
-    background-color: #262b34;
+    color: var(--fg-strong);
+    background-color: var(--line);
   }
 `;
 
