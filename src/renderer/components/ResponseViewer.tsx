@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { observer } from 'mobx-react-lite';
 import { requestStore } from '../stores/RequestStore';
+import { JsonTree } from './JsonTree';
+import { Timeline } from './Timeline';
 
 const ViewerContainer = styled.div<{ $empty?: boolean }>`
     padding: 15px;
@@ -201,7 +203,7 @@ const formatBody = (content: any): string => {
 
 export const ResponseViewer = observer(() => {
   const { response, loading, error, responseMetrics } = requestStore;
-  const [activeTab, setActiveTab] = useState<'body' | 'headers' | 'preview' | 'tests'>('body');
+  const [activeTab, setActiveTab] = useState<'body' | 'headers' | 'preview' | 'tests' | 'tree' | 'timeline'>('body');
 
   if (loading) {
     return (
@@ -265,8 +267,10 @@ export const ResponseViewer = observer(() => {
       <Tabs>
         <Tab $active={activeTab === 'body'} onClick={() => setActiveTab('body')}>Body</Tab>
         <Tab $active={activeTab === 'preview'} onClick={() => setActiveTab('preview')}>Preview</Tab>
+        <Tab $active={activeTab === 'tree'} onClick={() => setActiveTab('tree')}>Tree</Tab>
         <Tab $active={activeTab === 'headers'} onClick={() => setActiveTab('headers')}>Headers</Tab>
         <Tab $active={activeTab === 'tests'} onClick={() => setActiveTab('tests')}>Test Results ({passedCount}/{totalTests})</Tab>
+        <Tab $active={activeTab === 'timeline'} onClick={() => setActiveTab('timeline')}>Timeline</Tab>
         {activeTab === 'body' && (
             <>
                 <Spacer />
@@ -292,6 +296,8 @@ export const ResponseViewer = observer(() => {
                 sandbox="allow-scripts"
             />
         )}
+        {activeTab === 'tree' && <JsonTree data={data} />}
+        {activeTab === 'timeline' && <Timeline timing={response.timing} />}
         {activeTab === 'headers' && (
             <HeadersGrid>
                 {Object.entries(headers).map(([key, value]) => (

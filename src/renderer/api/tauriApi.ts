@@ -53,6 +53,7 @@ async function makeRequest(data: any) {
     statusText: res.statusText,
     headers: res.headers,
     data: body,
+    timing: res.timing,
     testResults: [...pre.tests, ...post.tests],
     consoleLogs: [...pre.logs, ...post.logs],
   };
