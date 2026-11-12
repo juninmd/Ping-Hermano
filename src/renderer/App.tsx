@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { GlobalStyle } from './styles/GlobalStyle';
+import { UpdateBadge } from './components/UpdateBadge';
 import { CommandPalette } from './components/CommandPalette';
 import { requestStore } from './stores/RequestStore';
 import Sidebar from './components/Sidebar';
@@ -187,6 +188,7 @@ function App() {
             </ResponseWrapper>
         </MainContent>
       </AppContainer>
+      <UpdateBadge />
       <ThemeBtn onClick={toggleTheme} aria-label="Alternar tema" title="Alternar tema"><span style={{ fontSize: 18 }}>◐</span></ThemeBtn>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} toggleTheme={toggleTheme} />
     </>

@@ -4,6 +4,7 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  define: { __APP_VERSION__: JSON.stringify('2.0.0') },
   test: {
     environment: 'jsdom',
     globals: true,

@@ -11,7 +11,13 @@
   },
   "app": {
     "windows": [
-      { "title": "PingHermano", "width": 1280, "height": 820, "minWidth": 900, "minHeight": 600 }
+      {
+        "title": "PingHermano",
+        "width": 1280,
+        "height": 820,
+        "minWidth": 900,
+        "minHeight": 600
+      }
     ],
     "security": {
       "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-src 'self' about: data: blob:; script-src 'self' 'unsafe-eval'; connect-src 'self' ipc: http://ipc.localhost"
@@ -20,6 +26,17 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": ["icons/icon.png"]
+    "icon": [
+      "icons/icon.png"
+    ],
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdGN0Q1NjU4NTkyOUJBQkEKUldTNnVpbFpXRlo5ZnpMZjZZQkhPSkpCcFNlc0JRbnNacmU1cWhnaFVvR0RDU25FaFdBZzgvYmIK",
+      "endpoints": [
+        "https://github.com/juninmd/post-hermano/releases/latest/download/latest.json"
+      ]
+    }
   }
 }

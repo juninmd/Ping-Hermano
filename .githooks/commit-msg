@@ -1,0 +1,3 @@
+#!/bin/sh
+# Valida Conventional Commits. Ativado por: git config core.hooksPath .githooks (script "prepare").
+exec node scripts/release.mjs check-message "$1"

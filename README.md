@@ -32,6 +32,40 @@ npm test              # testes (vitest)
 npm run tauri:build   # gera o instalador
 ```
 
+## Commits, versões e releases
+
+Os commits seguem [Conventional Commits](https://www.conventionalcommits.org/pt-br/): `tipo(escopo): descrição`
+(`feat`, `fix`, `perf`, `refactor`, `docs`, `style`, `test`, `build`, `ci`, `chore`, `revert`).
+O hook `.githooks/commit-msg` valida localmente (ativado pelo `prepare` ao rodar `pnpm install`) e o
+workflow **Commit Lint** valida o título e os commits de cada PR.
+
+A cada push na `master`, o workflow **Release** calcula a próxima versão a partir dos commits desde a última tag:
+
+| Commit | Versão |
+| --- | --- |
+| `feat!:` ou rodapé `BREAKING CHANGE:` | major |
+| `feat` | minor |
+| `fix`, `perf`, `revert` | patch |
+| demais tipos | sem release |
+
+Ele cria a tag `vX.Y.Z`, gera as notas, compila os instaladores (Linux, macOS Intel/ARM e Windows) e
+publica a GitHub Release com o `latest.json` do auto-update. Para simular: `pnpm release:next`.
+
+### Auto-update
+
+O app mostra a versão instalada (`vX.Y.Z`) no canto inferior e consulta a última release ao abrir e a cada 6 horas
+(ou pela paleta, em **Verificar atualizações**). Quando há uma versão nova, aparece **vX.Y.Z disponível · Atualizar**:
+o app baixa, valida a assinatura, instala e reinicia.
+
+Configuração única, para assinar as atualizações:
+
+```bash
+pnpm tauri signer generate -w ~/.tauri/pinghermano.key
+```
+
+1. Cadastre o conteúdo da chave privada como secret `TAURI_SIGNING_PRIVATE_KEY` (e a senha, se houver, em `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`).
+2. Troque `plugins.updater.pubkey` em `src-tauri/tauri.conf.json` pela chave pública (`.pub`) gerada.
+
 ## Estrutura
 
 ```

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { requestStore } from '../stores/RequestStore';
+import { updaterStore } from '../stores/UpdaterStore';
 
 const Overlay = styled.div`
   position: fixed; inset: 0; z-index: 200; display: flex; justify-content: center; align-items: flex-start;
@@ -33,6 +34,7 @@ export const buildCommands = (toggleTheme: () => void): Command[] => {
     { label: 'Enviar requisição', hint: 'Ctrl Enter', run: () => s.sendRequest() },
     { label: 'Cancelar requisição', run: () => s.cancelRequest() },
     { label: 'Alternar tema', run: toggleTheme },
+    { label: 'Verificar atualizações', run: () => updaterStore.check() },
     { label: 'Limpar histórico', run: () => s.clearHistory() },
     ...s.environments.map(e => ({ label: `Ambiente: ${e.name}`, run: () => s.setActiveEnvironment(e.id) })),
     ...s.collections.flatMap(c => c.requests.map(r => ({

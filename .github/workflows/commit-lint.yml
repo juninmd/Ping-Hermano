@@ -1,0 +1,26 @@
+name: Commit Lint
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  conventional-commits:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # O título vale para squash merge; os commits valem para merge/rebase.
+      - name: Título do PR
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: node scripts/release.mjs check-title "$TITLE"
+      - name: Commits do PR
+        run: node scripts/release.mjs check-range "origin/${{ github.base_ref }}..HEAD"
