@@ -16,10 +16,10 @@ const ModalOverlay = styled.div`
 `;
 
 const ModalContent = styled.div`
-  background-color: #14171c;
+  background-color: var(--surface);
   width: 600px;
   height: 500px;
-  border: 1px solid #262b34;
+  border: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   box-shadow: 0 4px 10px rgba(0,0,0,0.5);
@@ -27,12 +27,12 @@ const ModalContent = styled.div`
 
 const ModalHeader = styled.div`
   padding: 10px 15px;
-  border-bottom: 1px solid #262b34;
+  border-bottom: 1px solid var(--line);
   font-weight: bold;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: #d4d8e1;
+  color: var(--fg);
 `;
 
 const ModalBody = styled.div`
@@ -46,7 +46,7 @@ const ModalBody = styled.div`
 
 const ModalFooter = styled.div`
   padding: 10px 15px;
-  border-top: 1px solid #262b34;
+  border-top: 1px solid var(--line);
   display: flex;
   justify-content: flex-end;
   gap: 10px;
@@ -54,14 +54,14 @@ const ModalFooter = styled.div`
 
 const Input = styled.input`
   padding: 8px;
-  background-color: #1d222a;
-  color: #d4d8e1;
-  border: 1px solid #262b34;
+  background-color: var(--input);
+  color: var(--fg);
+  border: 1px solid var(--line);
   outline: none;
   width: 100%;
 
   &:focus {
-    border-color: #6366f1;
+    border-color: var(--accent);
   }
 `;
 
@@ -78,24 +78,24 @@ const Checkbox = styled.input`
 const IconButton = styled.button`
   background: none;
   border: none;
-  color: #7d8594;
+  color: var(--mute);
   cursor: pointer;
   font-size: 16px;
 
   &:hover {
-    color: #f87171;
+    color: var(--err);
   }
 `;
 
 const Button = styled.button<{ $primary?: boolean }>`
   padding: 8px 16px;
-  background-color: ${props => props.$primary ? '#6366f1' : '#1d222a'};
-  color: ${props => props.$primary ? 'white' : '#d4d8e1'};
-  border: 1px solid ${props => props.$primary ? '#6366f1' : '#262b34'};
+  background-color: ${props => props.$primary ? 'var(--accent)' : 'var(--input)'};
+  color: ${props => props.$primary ? 'white' : 'var(--fg)'};
+  border: 1px solid ${props => props.$primary ? 'var(--accent)' : 'var(--line)'};
   cursor: pointer;
 
   &:hover {
-    background-color: ${props => props.$primary ? '#4f46e5' : '#2f3541'};
+    background-color: ${props => props.$primary ? 'var(--accent-h)' : 'var(--line2)'};
   }
 `;
 
@@ -138,12 +138,12 @@ export const EnvironmentModal: React.FC<Props> = ({ environment, onSave, onClose
         </ModalHeader>
         <ModalBody>
           <div>
-            <label style={{ display: 'block', marginBottom: 5, color: '#7d8594' }}>Environment Name</label>
+            <label style={{ display: 'block', marginBottom: 5, color: 'var(--mute)' }}>Environment Name</label>
             <Input value={name} onChange={e => setName(e.target.value)} />
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: 5, color: '#7d8594' }}>Variables</label>
+            <label style={{ display: 'block', marginBottom: 5, color: 'var(--mute)' }}>Variables</label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 {variables.map((v, i) => (
                     <VariableRow key={i}>

@@ -3,10 +3,13 @@ import styled from 'styled-components';
 import { observer } from 'mobx-react-lite';
 import { requestStore } from '../stores/RequestStore';
 import { CodeSnippetModal } from './CodeSnippetModal';
+import { Select } from './Select';
+
+const methodColor = (m: string) => `var(--${m === 'OPTIONS' || m === 'HEAD' ? 'mute' : m.toLowerCase()})`;
 
 const EditorContainer = styled.div`
   padding: 15px;
-  border-bottom: 1px solid #262b34;
+  border-bottom: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -17,47 +20,46 @@ const RequestBar = styled.div`
   gap: 0;
 `;
 
-const MethodSelect = styled.select`
-  padding: 8px 12px;
-  background-color: #1d222a;
-  color: #d4d8e1;
-  border: 1px solid #262b34;
-  border-right: none;
-  border-radius: 4px 0 0 4px;
-  font-weight: bold;
-  width: 100px;
-  outline: none;
+const MethodBox = styled.div`
+  display: flex;
+  & button[data-select-trigger] {
+    border-radius: 10px 0 0 10px;
+    border-right: none;
+    height: 100%;
+  }
 `;
 
 const UrlInput = styled.input`
   flex: 1;
   padding: 8px 12px;
-  background-color: #1d222a;
-  color: #d4d8e1;
-  border: 1px solid #262b34;
+  background-color: var(--input);
+  color: var(--fg);
+  border: 1px solid var(--line);
   outline: none;
 
   &:focus {
-      border-color: #6366f1;
+      border-color: var(--accent);
   }
 `;
 
 const SendBtn = styled.button`
   padding: 8px 24px;
-  background-color: #6366f1;
+  background-color: var(--accent);
   color: white;
-  border: 1px solid #6366f1;
-  border-radius: 0 4px 4px 0;
+  border: 1px solid var(--accent);
+  border-radius: 0 10px 10px 0;
+  background: linear-gradient(135deg, var(--accent), #5b8cff);
+  box-shadow: 0 6px 20px var(--glow);
   cursor: pointer;
   font-weight: bold;
 
   &:hover {
-    background-color: #4f46e5;
+    background-color: var(--accent-h);
   }
 
   &:disabled {
-    background-color: #2f3541;
-    border-color: #2f3541;
+    background-color: var(--line2);
+    border-color: var(--line2);
     cursor: not-allowed;
   }
 `;
@@ -65,20 +67,20 @@ const SendBtn = styled.button`
 const Tabs = styled.div`
   display: flex;
   gap: 20px;
-  border-bottom: 1px solid #262b34;
+  border-bottom: 1px solid var(--line);
   margin-top: 10px;
 `;
 
 const Tab = styled.div<{ $active?: boolean }>`
   padding: 8px 0;
   cursor: pointer;
-  color: ${props => props.$active ? '#d4d8e1' : '#7d8594'};
+  color: ${props => props.$active ? 'var(--fg)' : 'var(--mute)'};
   font-size: 13px;
   position: relative;
   font-weight: ${props => props.$active ? '500' : 'normal'};
 
   &:hover {
-    color: #d4d8e1;
+    color: var(--fg);
   }
 
   ${props => props.$active && `
@@ -89,7 +91,7 @@ const Tab = styled.div<{ $active?: boolean }>`
       left: 0;
       width: 100%;
       height: 2px;
-      background-color: #818cf8;
+      background-color: var(--accent2);
     }
   `}
 `;
@@ -105,14 +107,14 @@ const TabContent = styled.div`
 const HeadersGrid = styled.div`
     display: flex;
     flex-direction: column;
-    border: 1px solid #262b34;
+    border: 1px solid var(--line);
     border-radius: 4px;
 `;
 
 const HeaderRow = styled.div<{ $label?: boolean }>`
     display: flex;
-    border-bottom: 1px solid #262b34;
-    background-color: ${props => props.$label ? '#20252e' : 'transparent'};
+    border-bottom: 1px solid var(--line);
+    background-color: ${props => props.$label ? 'var(--surface3)' : 'transparent'};
     font-weight: ${props => props.$label ? 'bold' : 'normal'};
     font-size: ${props => props.$label ? '12px' : 'inherit'};
 
@@ -124,7 +126,7 @@ const HeaderRow = styled.div<{ $label?: boolean }>`
 const ColLabel = styled.span`
     flex: 1;
     padding: 8px;
-    border-right: 1px solid #262b34;
+    border-right: 1px solid var(--line);
 `;
 
 const ColAction = styled.span`
@@ -136,12 +138,12 @@ const HeaderInput = styled.input`
     padding: 8px;
     background: transparent;
     border: none;
-    color: #d4d8e1;
-    border-right: 1px solid #262b34;
+    color: var(--fg);
+    border-right: 1px solid var(--line);
     outline: none;
 
     &:focus {
-        background-color: #20252e;
+        background-color: var(--surface3);
     }
 `;
 
@@ -149,14 +151,14 @@ const RemoveBtn = styled.button`
     width: 30px;
     background: none;
     border: none;
-    color: #7d8594;
+    color: var(--mute);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
 
     &:hover {
-        color: #f87171;
+        color: var(--err);
     }
 `;
 
@@ -169,16 +171,16 @@ const BodyEditor = styled.div`
 
 const BodyOptions = styled.div`
     font-size: 12px;
-    color: #7d8594;
+    color: var(--mute);
 `;
 
 const CodeEditor = styled.textarea`
     width: 100%;
     height: 100%;
     flex: 1;
-    background-color: #1d222a;
-    color: #e5e7ee;
-    border: 1px solid #262b34;
+    background-color: var(--input);
+    color: var(--fg);
+    border: 1px solid var(--line);
     border-radius: 4px;
     padding: 10px;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
@@ -193,15 +195,15 @@ const ParamsEditor = styled.div`
 
 const SaveBtn = styled.button`
   padding: 8px 16px;
-  background-color: #1d222a;
-  color: #d4d8e1;
-  border: 1px solid #262b34;
+  background-color: var(--input);
+  color: var(--fg);
+  border: 1px solid var(--line);
   cursor: pointer;
   margin-left: 10px;
   border-radius: 4px;
 
   &:hover {
-    background-color: #2f3541;
+    background-color: var(--line2);
   }
 `;
 
@@ -325,9 +327,11 @@ export const RequestEditor = observer(() => {
   return (
     <EditorContainer>
       <RequestBar>
-        <MethodSelect value={method} onChange={(e) => setMethod(e.target.value)}>
-          {methods.map(m => <option key={m} value={m}>{m}</option>)}
-        </MethodSelect>
+        <MethodBox>
+          <Select value={method} onChange={(e) => setMethod(e.target.value)} width="110px" label="Method" colorFor={methodColor}>
+            {methods.map(m => <option key={m} value={m}>{m}</option>)}
+          </Select>
+        </MethodBox>
         <UrlInput
           type="text"
           placeholder="Enter request URL"
@@ -342,7 +346,7 @@ export const RequestEditor = observer(() => {
               Send
             </SendBtn>
         ) : (
-            <SendBtn onClick={() => cancelRequest()} style={{ backgroundColor: '#f87171', borderColor: '#f87171' }}>
+            <SendBtn onClick={() => cancelRequest()} style={{ backgroundColor: 'var(--err)', borderColor: 'var(--err)' }}>
               Cancel
             </SendBtn>
         )}
@@ -397,16 +401,12 @@ export const RequestEditor = observer(() => {
             <div style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                 <label style={{ width: 80 }}>Type:</label>
-                <select
-                  value={auth.type}
-                  onChange={(e) => setAuth({ ...auth, type: e.target.value as any })}
-                  style={{ padding: 5, backgroundColor: '#1d222a', color: '#d4d8e1', border: '1px solid #262b34', outline: 'none' }}
-                >
+                <Select value={auth.type} onChange={(e) => setAuth({ ...auth, type: e.target.value as any })} width="200px" label="Auth type">
                   <option value="none">No Auth</option>
                   <option value="basic">Basic Auth</option>
                   <option value="bearer">Bearer Token</option>
                   <option value="apikey">API Key</option>
-                </select>
+                </Select>
               </div>
 
               {auth.type === 'basic' && (
@@ -417,7 +417,7 @@ export const RequestEditor = observer(() => {
                       type="text"
                       value={auth.username || ''}
                       onChange={(e) => setAuth({ ...auth, username: e.target.value })}
-                      style={{ padding: 5, flex: 1, backgroundColor: '#1d222a', color: '#d4d8e1', border: '1px solid #262b34', outline: 'none' }}
+                      style={{ padding: 5, flex: 1, backgroundColor: 'var(--input)', color: 'var(--fg)', border: '1px solid var(--line)', outline: 'none' }}
                       placeholder="Username"
                     />
                   </div>
@@ -427,7 +427,7 @@ export const RequestEditor = observer(() => {
                       type="password"
                       value={auth.password || ''}
                       onChange={(e) => setAuth({ ...auth, password: e.target.value })}
-                      style={{ padding: 5, flex: 1, backgroundColor: '#1d222a', color: '#d4d8e1', border: '1px solid #262b34', outline: 'none' }}
+                      style={{ padding: 5, flex: 1, backgroundColor: 'var(--input)', color: 'var(--fg)', border: '1px solid var(--line)', outline: 'none' }}
                       placeholder="Password"
                     />
                   </div>
@@ -441,7 +441,7 @@ export const RequestEditor = observer(() => {
                      type="text"
                      value={auth.token || ''}
                      onChange={(e) => setAuth({ ...auth, token: e.target.value })}
-                     style={{ padding: 5, flex: 1, backgroundColor: '#1d222a', color: '#d4d8e1', border: '1px solid #262b34', outline: 'none' }}
+                     style={{ padding: 5, flex: 1, backgroundColor: 'var(--input)', color: 'var(--fg)', border: '1px solid var(--line)', outline: 'none' }}
                      placeholder="Bearer Token"
                    />
                  </div>
@@ -455,7 +455,7 @@ export const RequestEditor = observer(() => {
                        type="text"
                        value={auth.apiKey?.key || ''}
                        onChange={(e) => setAuth({ ...auth, apiKey: { key: e.target.value, value: auth.apiKey?.value || '', addTo: auth.apiKey?.addTo || 'header' } })}
-                       style={{ padding: 5, flex: 1, backgroundColor: '#1d222a', color: '#d4d8e1', border: '1px solid #262b34', outline: 'none' }}
+                       style={{ padding: 5, flex: 1, backgroundColor: 'var(--input)', color: 'var(--fg)', border: '1px solid var(--line)', outline: 'none' }}
                        placeholder="Key"
                      />
                    </div>
@@ -465,25 +465,21 @@ export const RequestEditor = observer(() => {
                        type="text"
                        value={auth.apiKey?.value || ''}
                        onChange={(e) => setAuth({ ...auth, apiKey: { key: auth.apiKey?.key || '', value: e.target.value, addTo: auth.apiKey?.addTo || 'header' } })}
-                       style={{ padding: 5, flex: 1, backgroundColor: '#1d222a', color: '#d4d8e1', border: '1px solid #262b34', outline: 'none' }}
+                       style={{ padding: 5, flex: 1, backgroundColor: 'var(--input)', color: 'var(--fg)', border: '1px solid var(--line)', outline: 'none' }}
                        placeholder="Value"
                      />
                    </div>
                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                      <label style={{ width: 80 }}>Add To:</label>
-                     <select
-                       value={auth.apiKey?.addTo || 'header'}
-                       onChange={(e) => setAuth({ ...auth, apiKey: { key: auth.apiKey?.key || '', value: auth.apiKey?.value || '', addTo: e.target.value as any } })}
-                       style={{ padding: 5, backgroundColor: '#1d222a', color: '#d4d8e1', border: '1px solid #262b34', outline: 'none' }}
-                     >
+                     <Select value={auth.apiKey?.addTo || 'header'} onChange={(e) => setAuth({ ...auth, apiKey: { key: auth.apiKey?.key || '', value: auth.apiKey?.value || '', addTo: e.target.value as any } })} width="200px" label="Add to">
                        <option value="header">Header</option>
                        <option value="query">Query Params</option>
-                     </select>
+                     </Select>
                    </div>
                  </div>
               )}
             </div>
-            <div style={{ padding: 10, color: '#7d8594', fontSize: 12 }}>
+            <div style={{ padding: 10, color: 'var(--mute)', fontSize: 12 }}>
               Authorization header/params will be automatically generated.
             </div>
           </BodyEditor>
@@ -577,25 +573,14 @@ export const RequestEditor = observer(() => {
                             value={item.key}
                             onChange={(e) => handleFormDataChange(index, 'key', e.target.value)}
                         />
-                        <div style={{ width: 100, borderRight: '1px solid #262b34', display: 'flex' }}>
-                            <select
-                                value={item.type || 'text'}
-                                onChange={(e) => handleFormDataChange(index, 'type', e.target.value)}
-                                style={{
-                                    flex: 1,
-                                    backgroundColor: 'transparent',
-                                    color: '#d4d8e1',
-                                    border: 'none',
-                                    padding: '8px',
-                                    outline: 'none'
-                                }}
-                            >
+                        <div style={{ width: 100, borderRight: '1px solid var(--line)', display: 'flex' }}>
+                            <Select bare width="100%" value={item.type || 'text'} onChange={(e) => handleFormDataChange(index, 'type', e.target.value)} label="Field type">
                                 <option value="text">Text</option>
                                 <option value="file">File</option>
-                            </select>
+                            </Select>
                         </div>
                         {item.type === 'file' ? (
-                            <div style={{ flex: 1, display: 'flex', alignItems: 'center', borderRight: '1px solid #262b34', overflow: 'hidden' }}>
+                            <div style={{ flex: 1, display: 'flex', alignItems: 'center', borderRight: '1px solid var(--line)', overflow: 'hidden' }}>
                                 <input
                                     type="file"
                                     onChange={(e) => {
@@ -606,7 +591,7 @@ export const RequestEditor = observer(() => {
                                             handleFormDataChange(index, 'value', file.name);
                                         }
                                     }}
-                                    style={{ color: '#d4d8e1', padding: '8px', width: '100%' }}
+                                    style={{ color: 'var(--fg)', padding: '8px', width: '100%' }}
                                 />
                             </div>
                         ) : (

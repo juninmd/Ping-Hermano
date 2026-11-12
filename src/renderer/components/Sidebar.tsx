@@ -7,37 +7,37 @@ import { EnvironmentModal } from './EnvironmentModal';
 const SidebarContainer = styled.div`
   width: 250px;
   min-width: 200px;
-  background-color: #14171c;
-  border-right: 1px solid #262b34;
+  background-color: var(--surface);
+  border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
 `;
 
 const SidebarHeader = styled.div`
   padding: 0;
-  border-bottom: 1px solid #262b34;
+  border-bottom: 1px solid var(--line);
   display: flex;
 `;
 
 const TabButton = styled.button<{ $active: boolean }>`
   flex: 1;
-  background-color: ${props => props.$active ? '#14171c' : '#1a1e25'};
+  background-color: ${props => props.$active ? 'var(--surface)' : 'var(--surface2)'};
   border: none;
-  border-bottom: 2px solid ${props => props.$active ? '#6366f1' : 'transparent'};
-  color: ${props => props.$active ? '#fff' : '#7d8594'};
+  border-bottom: 2px solid ${props => props.$active ? 'var(--accent)' : 'transparent'};
+  color: ${props => props.$active ? '#fff' : 'var(--mute)'};
   padding: 10px;
   cursor: pointer;
   font-weight: 500;
 
   &:hover {
-    background-color: #14171c;
+    background-color: var(--surface);
     color: #fff;
   }
 `;
 
 const HeaderActions = styled.div`
   padding: 10px 15px;
-  border-bottom: 1px solid #262b34;
+  border-bottom: 1px solid var(--line);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -46,7 +46,7 @@ const HeaderActions = styled.div`
     margin: 0;
     font-size: 14px;
     text-transform: uppercase;
-    color: #7d8594;
+    color: var(--mute);
   }
 `;
 
@@ -78,12 +78,12 @@ const ItemContainer = styled.div`
   font-size: 13px;
 
   &:hover {
-    background-color: #20252e;
+    background-color: var(--surface3);
   }
 
   &.active {
-    background-color: #20252e;
-    border-left: 3px solid #6366f1;
+    background-color: var(--surface3);
+    border-left: 3px solid var(--accent);
     padding-left: 12px;
   }
 `;
@@ -97,12 +97,12 @@ const MethodBadge = styled.span<{ method: string }>`
   text-align: center;
   color: ${props => {
     switch (props.method.toLowerCase()) {
-      case 'get': return '#4ade80';
-      case 'post': return '#fbbf24';
-      case 'put': return '#6366f1';
-      case 'delete': return '#f87171';
-      case 'patch': return '#c084fc';
-      default: return '#d4d8e1';
+      case 'get': return 'var(--ok)';
+      case 'post': return 'var(--warn)';
+      case 'put': return 'var(--accent)';
+      case 'delete': return 'var(--err)';
+      case 'patch': return 'var(--patch)';
+      default: return 'var(--fg)';
     }
   }};
 `;
@@ -111,14 +111,14 @@ const TextTruncate = styled.span`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #d4d8e1;
+  color: var(--fg);
   flex: 1;
 `;
 
 const EmptyState = styled.div`
   padding: 20px;
   text-align: center;
-  color: #7d8594;
+  color: var(--mute);
   font-style: italic;
 `;
 
@@ -133,11 +133,11 @@ const CollectionHeader = styled.div`
   align-items: center;
   font-weight: bold;
   font-size: 13px;
-  background-color: #1a1e25;
-  color: #e5e7ee;
+  background-color: var(--surface2);
+  color: var(--fg);
 
   &:hover {
-    background-color: #232832;
+    background-color: var(--surface3);
   }
 `;
 
@@ -146,7 +146,7 @@ const RequestInCollection = styled(ItemContainer)`
   border-left: 3px solid transparent;
 
   &:hover {
-    border-left-color: #6366f1;
+    border-left-color: var(--accent);
   }
 `;
 

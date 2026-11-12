@@ -1,79 +1,35 @@
 import React, { useState, useRef, useEffect } from 'react';
-import styled, { createGlobalStyle } from 'styled-components';
+import styled from 'styled-components';
+import { GlobalStyle } from './styles/GlobalStyle';
+import { CommandPalette } from './components/CommandPalette';
+import { requestStore } from './stores/RequestStore';
 import Sidebar from './components/Sidebar';
 import RequestEditor from './components/RequestEditor';
 import ResponseViewer from './components/ResponseViewer';
 import TabList from './components/TabList';
 import { ResizeHandle } from './components/ResizeHandle';
 
-const GlobalStyle = createGlobalStyle`
-  :root {
-    font-family: Inter, 'Segoe UI', system-ui, -apple-system, sans-serif;
-    font-size: 14px;
-    line-height: 1.5;
-    font-weight: 400;
-
-    color-scheme: dark;
-    color: #e5e7ee;
-    background-color: #0f1115;
-
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  body {
-    margin: 0;
-    display: flex;
-    min-width: 800px;
-    min-height: 100vh;
-    background-color: #0f1115;
-    color: #d4d8e1;
-    overflow: hidden;
-  }
-
-  #root {
-    width: 100%;
-    height: 100vh;
-  }
-
-  * { box-sizing: border-box; }
-
-  button, input, select, textarea {
-    font-family: inherit;
-    transition: background-color .15s, border-color .15s, color .15s, box-shadow .15s;
-  }
-
-  button { cursor: pointer; border-radius: 6px; }
-  input, select, textarea { border-radius: 6px; }
-
-  input:focus, select:focus, textarea:focus, button:focus-visible {
-    outline: none;
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, .25);
-  }
-
-  textarea, pre, code { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; }
-
-  ::selection { background: rgba(99, 102, 241, .4); }
-
-  ::-webkit-scrollbar { width: 10px; height: 10px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb {
-    background: #2f3541; border-radius: 6px; border: 2px solid #0f1115;
-  }
-  ::-webkit-scrollbar-thumb:hover { background: #3d4452; }
-
-  @media (prefers-reduced-motion: reduce) {
-    * { transition: none !important; animation: none !important; }
-  }
-`;
 
 const AppContainer = styled.div`
   display: flex;
   height: 100%;
   width: 100%;
+  padding: 10px;
+  gap: 0;
+`;
+
+const glass = `
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  backdrop-filter: blur(18px) saturate(1.3);
+  box-shadow: var(--shadow);
+`;
+
+const ThemeBtn = styled.button`
+  position: fixed; right: 18px; bottom: 16px; z-index: 20; width: 36px; height: 36px;
+  border: 1px solid var(--line); background: var(--surface2); color: var(--fg);
+  &:hover { transform: rotate(20deg) scale(1.08); border-color: var(--accent); }
 `;
 
 const MainContent = styled.div`
@@ -91,6 +47,8 @@ const SidebarWrapper = styled.div<{ width: number }>`
   flex-direction: column;
   flex-shrink: 0;
   overflow: hidden;
+  ${glass}
+  animation: rise .5s both;
 `;
 
 const EditorWrapper = styled.div`
@@ -110,6 +68,25 @@ const ResponseWrapper = styled.div<{ height: number }>`
 function App() {
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const [responseHeight, setResponseHeight] = useState(300);
+
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const toggleTheme = React.useCallback(() => {
+    const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+    document.documentElement.dataset.theme = next;
+    localStorage.setItem('theme', next);
+  }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved) document.documentElement.dataset.theme = saved;
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.key.toLowerCase() === 'k') { e.preventDefault(); setPaletteOpen(o => !o); }
+      else if (e.key === 'Enter') { e.preventDefault(); requestStore.sendRequest(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const isResizing = useRef(false);
   const sidebarWidthRef = useRef(sidebarWidth);
@@ -210,6 +187,8 @@ function App() {
             </ResponseWrapper>
         </MainContent>
       </AppContainer>
+      <ThemeBtn onClick={toggleTheme} aria-label="Alternar tema" title="Alternar tema"><span style={{ fontSize: 18 }}>◐</span></ThemeBtn>
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} toggleTheme={toggleTheme} />
     </>
   );
 }

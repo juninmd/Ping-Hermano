@@ -17,12 +17,12 @@ const ViewerContainer = styled.div<{ $empty?: boolean }>`
 `;
 
 const PlaceholderText = styled.div`
-    color: #7d8594;
+    color: var(--mute);
     font-size: 16px;
 `;
 
 const Loader = styled.div`
-    color: #6366f1;
+    color: var(--accent);
 `;
 
 const ResponseMeta = styled.div`
@@ -30,6 +30,15 @@ const ResponseMeta = styled.div`
     gap: 20px;
     margin-bottom: 10px;
     font-size: 13px;
+`;
+
+const Radar = styled.div`
+  position: relative; width: 100px; height: 100px; margin: 0 auto 14px;
+  i { position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid var(--accent2);
+      opacity: 0; animation: ping 2.6s ease-out infinite; }
+  i:nth-child(2) { animation-delay: .9s; } i:nth-child(3) { animation-delay: 1.8s; }
+  b { position: absolute; inset: 0; margin: auto; width: 20px; height: 20px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow: 0 0 28px var(--accent); }
 `;
 
 const StatusValue = styled.span<{ status: number }>`
@@ -43,13 +52,13 @@ const StatusValue = styled.span<{ status: number }>`
 `;
 
 const MetaInfo = styled.div`
-    color: #7d8594;
+    color: var(--mute);
 `;
 
 const Tabs = styled.div`
   display: flex;
   gap: 20px;
-  border-bottom: 1px solid #262b34;
+  border-bottom: 1px solid var(--line);
   margin-top: 10px;
   align-items: center;
 `;
@@ -60,29 +69,29 @@ const Spacer = styled.div`
 
 const ActionButton = styled.button`
   padding: 4px 12px;
-  background-color: #1d222a;
-  color: #d4d8e1;
-  border: 1px solid #262b34;
+  background-color: var(--input);
+  color: var(--fg);
+  border: 1px solid var(--line);
   cursor: pointer;
   border-radius: 4px;
   font-size: 12px;
   margin-bottom: 5px;
 
   &:hover {
-    background-color: #2f3541;
+    background-color: var(--line2);
   }
 `;
 
 const Tab = styled.div<{ $active?: boolean }>`
   padding: 8px 0;
   cursor: pointer;
-  color: ${props => props.$active ? '#d4d8e1' : '#7d8594'};
+  color: ${props => props.$active ? 'var(--fg)' : 'var(--mute)'};
   font-size: 13px;
   position: relative;
   font-weight: ${props => props.$active ? '500' : 'normal'};
 
   &:hover {
-    color: #d4d8e1;
+    color: var(--fg);
   }
 
   ${props => props.$active && `
@@ -93,7 +102,7 @@ const Tab = styled.div<{ $active?: boolean }>`
       left: 0;
       width: 100%;
       height: 2px;
-      background-color: #818cf8;
+      background-color: var(--accent2);
     }
   `}
 `;
@@ -109,13 +118,13 @@ const TabContent = styled.div`
 const HeadersGrid = styled.div`
     display: flex;
     flex-direction: column;
-    border: 1px solid #262b34;
+    border: 1px solid var(--line);
     border-radius: 4px;
 `;
 
 const HeaderRow = styled.div`
     display: flex;
-    border-bottom: 1px solid #262b34;
+    border-bottom: 1px solid var(--line);
     &:last-child {
         border-bottom: none;
     }
@@ -126,10 +135,10 @@ const ReadOnlyInput = styled.input`
     padding: 8px;
     background: transparent;
     border: none;
-    color: #d4d8e1;
-    border-right: 1px solid #262b34;
+    color: var(--fg);
+    border-right: 1px solid var(--line);
     outline: none;
-    background-color: #14171c;
+    background-color: var(--surface);
 `;
 
 const TestResultsList = styled.div`
@@ -145,7 +154,7 @@ const TestResultItem = styled.div<{ $passed: boolean }>`
   justify-content: space-between;
   padding: 8px;
   background-color: ${props => props.$passed ? 'rgba(106, 153, 85, 0.2)' : 'rgba(244, 135, 113, 0.2)'};
-  border-left: 3px solid ${props => props.$passed ? '#4ade80' : '#f87171'};
+  border-left: 3px solid ${props => props.$passed ? 'var(--ok)' : 'var(--err)'};
   border-radius: 4px;
 `;
 
@@ -153,8 +162,8 @@ const ResponseBody = styled.textarea`
     width: 100%;
     height: 100%;
     flex: 1;
-    background-color: #0f1115;
-    color: #e5e7ee;
+    background-color: var(--bg);
+    color: var(--fg);
     border: none;
     padding: 10px;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
@@ -213,6 +222,7 @@ export const ResponseViewer = observer(() => {
   if (!response) {
     return (
         <ViewerContainer $empty>
+            <Radar aria-hidden><i /><i /><i /><b /></Radar>
             <PlaceholderText>Enter URL and click Send to get a response</PlaceholderText>
         </ViewerContainer>
     );
@@ -294,7 +304,7 @@ export const ResponseViewer = observer(() => {
         )}
         {activeTab === 'tests' && (
             <TestResultsList>
-                {testResults.length === 0 && <div style={{ color: '#7d8594' }}>No tests executed</div>}
+                {testResults.length === 0 && <div style={{ color: 'var(--mute)' }}>No tests executed</div>}
                 {testResults.map((test: any, index: number) => (
                     <TestResultItem key={index} $passed={test.passed}>
                         <span>{test.name}</span>
