@@ -1,5 +1,9 @@
 # PingHermano
 
+<p align="center">
+  <img src="docs/readme/hero.png" alt="Banner ilustrativo do PingHermano (mockup com dados fictícios)" width="100%">
+</p>
+
 Cliente de API desktop no estilo Postman: abas de requisição, coleções, ambientes com `{{variáveis}}`, scripts de pre-request/testes, histórico e visualização de resposta — construído com **Tauri 2** (Rust), **React** e **MobX**.
 
 | Editor de requisição | Resposta com body, headers e testes |
@@ -157,6 +161,18 @@ Os testes cobrem store, editor, resposta, sidebar, paleta, gerador de código e 
 | `dependabot-auto-merge.yml` | Auto-merge de PRs do Dependabot com checks verdes |
 
 Não há workflow que compile ou publique instaladores; o `tauri:build` é local.
+
+## Imagens
+
+> [!NOTE]
+> **Mockups ilustrativos.** As telas abaixo foram geradas em HTML com dados fictícios (Playwright) e não são capturas de uma instalação real.
+
+<p align="center">
+  <img src="docs/readme/request.png" alt="Requisição e resposta — mockup ilustrativo com dados fictícios" width="100%">
+  <br>
+  <sub>Requisição e resposta — dados fictícios.</sub>
+</p>
+
 
 ## Limitações
 
